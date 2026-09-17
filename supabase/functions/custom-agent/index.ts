@@ -137,73 +137,131 @@ async function persistThread(
   }
 }
 
-/** Consume the AG-UI SSE stream and return the final assistant text. */
-async function consumeSseStream(body: ReadableStream<Uint8Array>): Promise<string> {
+/**
+ * Consume the AG-UI SSE stream, returning the final assistant text.
+ * Exits as soon as a terminal event arrives (rather than waiting for the
+ * stream to close) and is bounded by the caller's abort signal.
+ */
+async function consumeSseStream(
+  body: ReadableStream<Uint8Array>,
+  signal: AbortSignal
+): Promise<{ text: string; finished: boolean }> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let lastText = "";
+  let finished = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
+  try {
+    while (true) {
+      if (signal.aborted) break;
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) continue;
-      const data = trimmed.slice(5).trim();
-      if (!data) continue;
-      try {
-        const evt = JSON.parse(data);
-        const type = String(evt?.type ?? "").toLowerCase();
-        const content = evt?.message?.content;
-        if ((type.includes("message") || type.includes("text")) && content) {
-          if (Array.isArray(content)) {
-            const text = content
-              .filter(
-                (p: { type?: string; text?: string }) =>
-                  p?.type === "text" && typeof p.text === "string"
-              )
-              .map((p: { text: string }) => p.text)
-              .join("\n");
-            if (text) lastText = text;
-          } else if (typeof content === "string" && content) {
-            lastText = content;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const data = trimmed.slice(5).trim();
+        if (!data) continue;
+        try {
+          const evt = JSON.parse(data);
+          const type = String(evt?.type ?? "").toLowerCase();
+          const content = evt?.message?.content;
+          if ((type.includes("message") || type.includes("text")) && content) {
+            if (Array.isArray(content)) {
+              const text = content
+                .filter(
+                  (p: { type?: string; text?: string }) =>
+                    p?.type === "text" && typeof p.text === "string"
+                )
+                .map((p: { text: string }) => p.text)
+                .join("\n");
+              if (text) lastText = text;
+            } else if (typeof content === "string" && content) {
+              lastText = content;
+            }
           }
+          // Terminal: stop reading as soon as the run completes.
+          if (
+            type.includes("finish") ||
+            type.includes("complete") ||
+            type.includes("end") ||
+            evt?.event?.name === "agent.turn.complete" ||
+            evt?.event?.name === "agent.run.completed"
+          ) {
+            finished = true;
+          }
+        } catch {
+          /* skip malformed records */
         }
-      } catch {
-        /* skip malformed records */
       }
+      if (finished) break;
+    }
+  } catch {
+    /* aborted or stream error */
+  } finally {
+    try {
+      await reader.cancel();
+    } catch {
+      /* already closed */
     }
   }
-  return lastText;
+  return { text: lastText, finished };
 }
 
 async function runAgent(agentId: string, threadId: string, userMessage: string) {
-  const upstream = await fetch(enterUrl(`/agents/${agentId}/run`), {
-    method: "POST",
-    headers: { ...enterHeaders(), Accept: "text/event-stream" },
-    body: JSON.stringify({
-      threadId,
-      messages: [
-        { id: `user-${Date.now()}`, role: "user", content: userMessage },
-      ],
-      state: {},
-      context: [],
-      tools: [],
-      forwardedProps: {},
-    }),
-  });
-  if (!upstream.ok) {
-    throw errorJson("AGENT_RUN_FAILED", "Agent run failed.", 502);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 75_000);
+
+  try {
+    const upstream = await fetch(enterUrl(`/agents/${agentId}/run`), {
+      method: "POST",
+      headers: { ...enterHeaders(), Accept: "text/event-stream" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        threadId,
+        messages: [
+          { id: `user-${Date.now()}`, role: "user", content: userMessage },
+        ],
+        state: {},
+        context: [],
+        tools: [],
+        forwardedProps: {},
+      }),
+    });
+    if (!upstream.ok) {
+      throw errorJson("AGENT_RUN_FAILED", "Agent run failed.", 502);
+    }
+    if (!upstream.body) {
+      throw errorJson("AGENT_RUN_FAILED", "Empty agent response stream.", 502);
+    }
+    const { text, finished } = await consumeSseStream(
+      upstream.body,
+      controller.signal
+    );
+    if (!text && !finished) {
+      throw errorJson(
+        "AGENT_RUN_TIMEOUT",
+        "Agent did not respond in time. Please retry.",
+        504
+      );
+    }
+    return text;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw errorJson(
+        "AGENT_RUN_TIMEOUT",
+        "Agent run timed out after 75s. Please retry.",
+        504
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  if (!upstream.body) {
-    throw errorJson("AGENT_RUN_FAILED", "Empty agent response stream.", 502);
-  }
-  return consumeSseStream(upstream.body);
 }
 
 function extractJson(text: string): unknown | null {
