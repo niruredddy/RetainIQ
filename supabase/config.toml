@@ -1,4 +1,7 @@
 project_id = "asbgkynqicvthbxkxiqo"
 
 [functions.custom-agent]
-verify_jwt = true
+# Auth is validated inside the function (validates the caller's session JWT and
+# returns 401 itself), which lets it report real errors instead of the platform
+# gate silently rejecting the request.
+verify_jwt = false

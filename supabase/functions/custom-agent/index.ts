@@ -334,7 +334,16 @@ Deno.serve(async (req) => {
 
     return errorJson("BAD_REQUEST", "Unknown action.", 400);
   } catch (err) {
-    if (err instanceof Response) return err;
+    if (err instanceof Response) {
+      // Surface the rejection code for diagnostics (sanitized — no secrets).
+      const body = await err.json().catch(() => null);
+      console.error(
+        "custom-agent rejected request",
+        err.status,
+        body?.error_code
+      );
+      return err;
+    }
     console.error("custom-agent proxy failed", err);
     return errorJson("PROXY_FAILED", "Custom-agent proxy failed.", 500);
   }

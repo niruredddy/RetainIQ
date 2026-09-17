@@ -28,7 +28,23 @@ export async function runDiagnostic(employeeId: string): Promise<DiagnosticResul
   });
 
   if (error) {
-    throw new Error(error.message ?? "Diagnostic failed.");
+    // Surface the backend function's real error code/message when available.
+    let detail = error.message ?? "Diagnostic failed.";
+    try {
+      const ctx = (error as { context?: Response | string }).context;
+      if (ctx instanceof Response) {
+        const body = (await ctx.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        if (body?.message) detail = body.message;
+      } else if (typeof ctx === "string" && ctx) {
+        const body = JSON.parse(ctx) as { message?: string };
+        if (body?.message) detail = body.message;
+      }
+    } catch {
+      /* keep the default message */
+    }
+    throw new Error(detail);
   }
 
   if (
