@@ -115,7 +115,7 @@ export default function Dashboard() {
             animate="show"
             className="mt-6 max-w-2xl font-display text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl"
           >
-            Good morning, Raj.
+            Good morning, Niru.
             <br />
             <span className="gradient-text">Your workforce is under control.</span>
           </motion.h1>
