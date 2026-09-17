@@ -64,7 +64,8 @@ export default {
 				indigo: "hsl(var(--indigo))",
 			},
 			fontFamily: {
-				sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+				sans: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+				display: ["Sora", "ui-sans-serif", "system-ui", "sans-serif"],
 				mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
 			},
 			borderRadius: {
@@ -111,6 +112,14 @@ export default {
 					"0%, 100%": { backgroundPosition: "0% 50%" },
 					"50%": { backgroundPosition: "100% 50%" },
 				},
+				ticker: {
+					from: { transform: "translateX(0)" },
+					to: { transform: "translateX(-50%)" },
+				},
+				float: {
+					"0%, 100%": { transform: "translateY(0)" },
+					"50%": { transform: "translateY(-8px)" },
+				},
 				blink: {
 					"0%, 100%": { opacity: "1" },
 					"50%": { opacity: "0" },
@@ -123,6 +132,8 @@ export default {
 				"fade-in-up": "fade-in-up 0.3s ease-out",
 				"pulse-glow": "pulse-glow 2s ease-in-out infinite",
 				"gradient-x": "gradient-x 4s ease-in-out infinite",
+				ticker: "ticker 32s linear infinite",
+				float: "float 5s ease-in-out infinite",
 				blink: "blink 1s step-end infinite",
 			},
 		},
