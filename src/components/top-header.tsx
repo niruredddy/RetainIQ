@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
-import { Bell, ChevronRight, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
 
 export function TopHeader({
   onOpenSearch,
@@ -18,12 +27,24 @@ export function TopHeader({
 }) {
   const { pathname } = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
+  const { user, signOut } = useAuth();
   const isDark = resolvedTheme === "dark";
 
   const current =
     pathname === "/"
       ? NAV_ITEMS[0]
       : NAV_ITEMS.find((item) => item.path !== "/" && pathname.startsWith(item.path));
+
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined)?.trim() ||
+    user?.email?.split("@")[0] ||
+    "User";
+  const initials = displayName
+    .split(/\s+/)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <header className="glass sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 lg:px-6">
@@ -105,16 +126,37 @@ export function TopHeader({
           </TooltipContent>
         </Tooltip>
 
-        {/* Avatar */}
-        <div className="ml-1.5 flex items-center gap-2.5 border-l border-border pl-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-semibold text-white ring-2 ring-border">
-            RK
-          </div>
-          <div className="hidden leading-tight lg:block">
-            <p className="text-sm font-medium text-foreground">Raj Kapoor</p>
-            <p className="font-mono text-[10px] text-muted-foreground">HRIS · Admin</p>
-          </div>
-        </div>
+        {/* User */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="ml-1.5 flex items-center gap-2.5 border-l border-border pl-3 outline-none transition-opacity duration-200 hover:opacity-80">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-semibold text-white ring-2 ring-border">
+                {initials}
+              </div>
+              <div className="hidden leading-tight text-left lg:block">
+                <p className="text-sm font-medium text-foreground">
+                  {displayName}
+                </p>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  {user?.email}
+                </p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <p className="text-sm font-medium text-foreground">{displayName}</p>
+              <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                {user?.email}
+              </p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => void signOut()}>
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

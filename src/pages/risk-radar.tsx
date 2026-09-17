@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, Users, Workflow } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { RiskBadge } from "@/components/risk-badge";
-import { employees } from "@/data/dashboard";
+import { useEmployees } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
 
 function MetricCard({
@@ -63,6 +64,10 @@ function StatusCell({ status }: { status: string }) {
 }
 
 export default function RiskRadar() {
+  const { data: employees, isLoading, isError, refetch } = useEmployees();
+  const total = employees?.length;
+  const critical = employees?.filter((e) => e.risk_score > 70).length;
+
   return (
     <>
       <PageHeader
@@ -70,7 +75,7 @@ export default function RiskRadar() {
         description="Cross-vector attrition signals fused from HRIS, telemetry and peer sentiment."
         right={
           <span className="rounded-md border border-border bg-muted/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
-            SYNC · 09:41:54 UTC
+            LIVE · ENTER CLOUD SYNC
           </span>
         }
       />
@@ -79,13 +84,13 @@ export default function RiskRadar() {
       <div className="grid gap-4 sm:grid-cols-3">
         <MetricCard
           label="Total Monitored"
-          value="247"
+          value={isLoading ? "…" : String(total ?? 0)}
           icon={Users}
           iconClass="border-border bg-muted/50 text-muted-foreground"
         />
         <MetricCard
           label="Critical Attrition Risk"
-          value="18"
+          value={isLoading ? "…" : String(critical ?? 0)}
           icon={AlertTriangle}
           iconClass="border-destructive/25 bg-destructive/10 text-destructive"
           valueClass="text-destructive drop-shadow-[0_0_12px_hsl(350_89%_60%/0.45)]"
@@ -133,64 +138,102 @@ export default function RiskRadar() {
         </div>
 
         <div className="divide-y divide-border">
-          {employees.map((emp) => (
-            <div
-              key={emp.id}
-              className="grid grid-cols-[minmax(0,2.2fr)_0.7fr_0.8fr_0.8fr_1fr] items-center gap-4 rounded-lg border border-transparent px-5 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-soft max-md:grid-cols-[minmax(0,1.5fr)_0.7fr_1fr]"
-            >
-              {/* Employee */}
-              <div className="flex min-w-0 items-center gap-3">
-                <Avatar className="h-9 w-9 shrink-0 ring-1 ring-border">
-                  <AvatarFallback
-                    className={cn(
-                      "bg-gradient-to-br text-xs font-semibold text-white",
-                      emp.gradient
-                    )}
-                  >
-                    {emp.initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {emp.name}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {emp.role}
+          {isLoading &&
+            Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[minmax(0,2.2fr)_0.7fr_0.8fr_0.8fr_1fr] items-center gap-4 px-5 py-3.5 max-md:grid-cols-[minmax(0,1.5fr)_0.7fr_1fr]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="shimmer h-9 w-9 shrink-0 rounded-full bg-muted" />
+                  <div className="space-y-2">
+                    <div className="shimmer h-3 w-32 rounded bg-muted" />
+                    <div className="shimmer h-2.5 w-44 rounded bg-muted" />
+                  </div>
+                </div>
+                <div className="shimmer hidden h-3 w-10 rounded bg-muted md:block" />
+                <div className="shimmer hidden h-3 w-8 rounded bg-muted md:block" />
+                <div className="shimmer h-6 w-14 rounded-full bg-muted" />
+                <div className="shimmer h-3 w-16 rounded bg-muted" />
+              </div>
+            ))}
+
+          {isError && (
+            <div className="px-5 py-12 text-center">
+              <p className="font-mono text-xs tracking-widest text-destructive">
+                FAILED TO LOAD EMPLOYEE SIGNALS
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {!isLoading &&
+            !isError &&
+            (employees ?? []).map((emp) => (
+              <div
+                key={emp.id}
+                className="grid grid-cols-[minmax(0,2.2fr)_0.7fr_0.8fr_0.8fr_1fr] items-center gap-4 rounded-lg border border-transparent px-5 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-soft max-md:grid-cols-[minmax(0,1.5fr)_0.7fr_1fr]"
+              >
+                {/* Employee */}
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="h-9 w-9 shrink-0 ring-1 ring-border">
+                    <AvatarFallback
+                      className={cn(
+                        "bg-gradient-to-br text-xs font-semibold text-white",
+                        emp.gradient
+                      )}
+                    >
+                      {emp.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {emp.name}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {emp.role}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Overtime */}
+                <div className="hidden md:block">
+                  <p className="font-mono text-sm text-foreground">
+                    {Number(emp.overtime_spike).toFixed(1)}
+                    <span className="text-muted-foreground">h</span>
                   </p>
                 </div>
-              </div>
 
-              {/* Overtime */}
-              <div className="hidden md:block">
-                <p className="font-mono text-sm text-foreground">
-                  {emp.overtimeSpike.toFixed(1)}
-                  <span className="text-muted-foreground">h</span>
-                </p>
-              </div>
+                {/* Sentiment */}
+                <div className="hidden md:block">
+                  <p
+                    className={cn(
+                      "font-mono text-sm",
+                      emp.sentiment_drop > 25
+                        ? "text-destructive"
+                        : "text-foreground"
+                    )}
+                  >
+                    −{emp.sentiment_drop}
+                  </p>
+                </div>
 
-              {/* Sentiment */}
-              <div className="hidden md:block">
-                <p
-                  className={cn(
-                    "font-mono text-sm",
-                    emp.sentimentDrop > 25
-                      ? "text-destructive"
-                      : "text-foreground"
-                  )}
-                >
-                  −{emp.sentimentDrop}
-                </p>
-              </div>
+                {/* Risk */}
+                <div>
+                  <RiskBadge score={emp.risk_score} />
+                </div>
 
-              {/* Risk */}
-              <div>
-                <RiskBadge score={emp.riskScore} />
+                {/* Status */}
+                <StatusCell status={emp.status} />
               </div>
-
-              {/* Status */}
-              <StatusCell status={emp.status} />
-            </div>
-          ))}
+            ))}
         </div>
       </Card>
     </>

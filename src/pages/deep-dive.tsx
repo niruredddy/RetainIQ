@@ -23,10 +23,11 @@ import { PageHeader } from "@/components/page-shell";
 import { RiskBadge } from "@/components/risk-badge";
 import {
   attendancePattern,
-  focusEmployee,
+  focusEmployee as demoFocus,
   peerSentiment,
   skillMatrix,
 } from "@/data/dashboard";
+import { useEmployees } from "@/hooks/use-employees";
 import { runDiagnostic, type DiagnosticResult } from "@/lib/diagnostic";
 import { cn } from "@/lib/utils";
 
@@ -154,6 +155,20 @@ function Gauge({ value }: { value: number }) {
 type PanelState = "idle" | "loading" | "done";
 
 export default function DeepDive() {
+  const { data: employees } = useEmployees();
+  const live = employees?.[0];
+  const focusEmployee = live
+    ? {
+        id: live.employee_code,
+        name: live.name,
+        role: live.role,
+        initials: live.initials,
+        gradient: live.gradient,
+        tenure: live.tenure,
+        riskScore: live.risk_score,
+      }
+    : demoFocus;
+
   const [state, setState] = useState<PanelState>("idle");
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [copied, setCopied] = useState(false);

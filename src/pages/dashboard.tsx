@@ -12,7 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { RiskBadge } from "@/components/risk-badge";
-import { employees } from "@/data/dashboard";
+import { useEmployees } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
 
 const ThreeBackground = lazy(() => import("@/components/site/three-background"));
@@ -57,26 +57,28 @@ const MODULES = [
   },
 ];
 
-const STATS = [
-  { icon: Users, label: "Total Monitored", value: "247", iconClass: "border-border bg-muted/50 text-muted-foreground" },
+const STAT_CONFIG = [
+  { icon: Users, label: "Total Monitored", iconClass: "border-border bg-muted/50 text-muted-foreground" },
   {
     icon: AlertTriangle,
     label: "Critical Attrition Risk",
-    value: "18",
     iconClass: "border-destructive/25 bg-destructive/10 text-destructive",
     valueClass: "text-destructive drop-shadow-[0_0_12px_hsl(350_89%_60%/0.45)]",
   },
   {
     icon: Workflow,
     label: "Active Workflows",
-    value: "7",
     iconClass: "border-success/25 bg-success/10 text-success",
     valueClass: "text-success",
   },
 ];
 
 export default function Dashboard() {
-  const topSignals = [...employees].sort((a, b) => b.riskScore - a.riskScore).slice(0, 4);
+  const { data: employees, isLoading, isError } = useEmployees();
+  const total = employees?.length;
+  const critical = employees?.filter((e) => e.risk_score > 70).length;
+  const statValues = [isLoading ? "…" : String(total ?? 0), isLoading ? "…" : String(critical ?? 0), "7"];
+  const topSignals = employees?.slice(0, 4) ?? [];
 
   return (
     <div className="space-y-6">
@@ -137,7 +139,7 @@ export default function Dashboard() {
             animate="show"
             className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
           >
-            {STATS.map((stat) => (
+            {STAT_CONFIG.map((stat, i) => (
               <div
                 key={stat.label}
                 className="flex items-center gap-3 rounded-xl border border-border bg-card/70 p-4 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft"
@@ -160,7 +162,7 @@ export default function Dashboard() {
                       stat.valueClass ?? "text-foreground"
                     )}
                   >
-                    {stat.value}
+                    {statValues[i]}
                   </p>
                 </div>
               </div>
@@ -243,58 +245,86 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {topSignals.map((emp, i) => (
-            <motion.div
-              key={emp.id}
-              variants={fadeUp}
-              custom={8 + i}
-              initial="hidden"
-              animate="show"
-            >
-              <Link
-                to="/deep-dive"
-                className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-destructive/40 hover:shadow-soft"
+          {isLoading &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-card p-5"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
-                      emp.gradient
-                    )}
-                  >
-                    {emp.initials}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {emp.name}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {emp.role}
-                    </p>
+                  <div className="shimmer h-9 w-9 shrink-0 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="shimmer h-3 w-24 rounded bg-muted" />
+                    <div className="shimmer h-2.5 w-32 rounded bg-muted" />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <RiskBadge score={emp.riskScore} />
-                  <span
-                    className={cn(
-                      "font-mono text-[10px]",
-                      emp.status === "Escalate"
-                        ? "text-destructive"
-                        : emp.status === "Intervene"
-                          ? "text-warning"
-                          : "text-muted-foreground"
-                    )}
-                  >
-                    {emp.status}
-                  </span>
-                </div>
-                <p className="mt-3 border-t border-border pt-3 font-mono text-[10px] text-muted-foreground">
-                  OVERTIME +{emp.overtimeSpike.toFixed(1)}H · SENTIMENT −
-                  {emp.sentimentDrop}
-                </p>
-              </Link>
-            </motion.div>
-          ))}
+                <div className="shimmer mt-4 h-6 w-14 rounded-full bg-muted" />
+                <div className="shimmer mt-4 h-3 w-full rounded bg-muted" />
+              </div>
+            ))}
+
+          {isError && (
+            <div className="col-span-full rounded-xl border border-border bg-card p-8 text-center">
+              <p className="font-mono text-xs tracking-widest text-destructive">
+                FAILED TO LOAD SIGNALS
+              </p>
+            </div>
+          )}
+
+          {!isLoading &&
+            !isError &&
+            topSignals.map((emp, i) => (
+              <motion.div
+                key={emp.id}
+                variants={fadeUp}
+                custom={8 + i}
+                initial="hidden"
+                animate="show"
+              >
+                <Link
+                  to="/deep-dive"
+                  className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-destructive/40 hover:shadow-soft"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
+                        emp.gradient
+                      )}
+                    >
+                      {emp.initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {emp.name}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {emp.role}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <RiskBadge score={emp.risk_score} />
+                    <span
+                      className={cn(
+                        "font-mono text-[10px]",
+                        emp.status === "Escalate"
+                          ? "text-destructive"
+                          : emp.status === "Intervene"
+                            ? "text-warning"
+                            : "text-muted-foreground"
+                      )}
+                    >
+                      {emp.status}
+                    </span>
+                  </div>
+                  <p className="mt-3 border-t border-border pt-3 font-mono text-[10px] text-muted-foreground">
+                    OVERTIME +{Number(emp.overtime_spike).toFixed(1)}H · SENTIMENT −
+                    {emp.sentiment_drop}
+                  </p>
+                </Link>
+              </motion.div>
+            ))}
         </div>
       </section>
     </div>

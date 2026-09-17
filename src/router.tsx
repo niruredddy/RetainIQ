@@ -1,15 +1,26 @@
 import AppShell from "./components/app-shell";
+import { AuthGuard } from "./components/auth-guard";
 import Dashboard from "./pages/dashboard";
 import RiskRadar from "./pages/risk-radar";
 import DeepDive from "./pages/deep-dive";
 import MobilityMatcher from "./pages/mobility-matcher";
 import ActionCenter from "./pages/action-center";
+import AuthPage from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
 export const routers = [
   {
+    path: "/auth",
+    name: "auth",
+    element: <AuthPage />,
+  },
+  {
     path: "/",
-    element: <AppShell />,
+    element: (
+      <AuthGuard>
+        <AppShell />
+      </AuthGuard>
+    ),
     children: [
       {
         index: true,
