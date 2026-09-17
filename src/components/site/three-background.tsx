@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
-type Variant = "hero" | "cta";
+type Variant = "hero" | "cta" | "app";
 
 const PALETTES = {
   dark: {
@@ -33,20 +33,21 @@ interface SceneState {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   group: THREE.Group;
-  globeGroup: THREE.Group;
+  globeGroup?: THREE.Group;
   pointsGeo: THREE.BufferGeometry;
   linkGeo: THREE.BufferGeometry;
-  globeGeo: THREE.BufferGeometry;
-  ringA: THREE.Line;
-  ringB: THREE.Line;
+  globeGeo?: THREE.BufferGeometry;
+  ringA?: THREE.Line;
+  ringB?: THREE.Line;
   nodePositions: Float32Array;
   nodePhases: Float32Array;
   nodeSpeeds: Float32Array;
   nodeBase: THREE.Vector3[];
   pointsMat: THREE.PointsMaterial;
   linksMat: THREE.LineBasicMaterial;
-  globeMat: THREE.MeshBasicMaterial;
+  globeMat?: THREE.MeshBasicMaterial;
   timer: THREE.Timer;
+  opacityFactor: number;
   raf: number;
   running: boolean;
   mouse: { x: number; y: number };
@@ -76,9 +77,12 @@ function buildScene(container: HTMLElement, variant: Variant): SceneState {
   container.appendChild(renderer.domElement);
 
   const isHero = variant === "hero";
-  const radiusMin = isHero ? 3.8 : 2.6;
-  const radiusMax = isHero ? 8.6 : 5.2;
-  const count = isHero ? 280 : 130;
+  const isApp = variant === "app";
+  const radiusMin = isApp ? 5 : isHero ? 3.8 : 2.6;
+  const radiusMax = isApp ? 11 : isHero ? 8.6 : 5.2;
+  const count = isHero ? 280 : isApp ? 130 : 130;
+  const pointSize = isHero ? 0.045 : isApp ? 0.035 : 0.035;
+  const opacityFactor = isApp ? 0.75 : 1;
 
   /* ---- Particle constellation ---- */
   const positions = new Float32Array(count * 3);
@@ -106,7 +110,7 @@ function buildScene(container: HTMLElement, variant: Variant): SceneState {
   pointsGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   const pointsMat = new THREE.PointsMaterial({
     color: PALETTES.dark.point,
-    size: isHero ? 0.045 : 0.035,
+    size: pointSize,
     transparent: true,
     opacity: PALETTES.dark.pointOpacity,
     blending: THREE.AdditiveBlending,
@@ -143,61 +147,71 @@ function buildScene(container: HTMLElement, variant: Variant): SceneState {
   });
   const links = new THREE.LineSegments(linkGeo, linksMat);
 
-  /* ---- Data globe ---- */
-  const globeGeo = new THREE.IcosahedronGeometry(3.4, 1);
-  const globeMat = new THREE.MeshBasicMaterial({
-    color: PALETTES.dark.globe,
-    wireframe: true,
-    transparent: true,
-    opacity: PALETTES.dark.globeOpacity,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  const globe = new THREE.Mesh(globeGeo, globeMat);
+  /* ---- Data globe (skipped for ambient "app" variant) ---- */
+  let globeGroup: THREE.Group | undefined;
+  let globeGeo: THREE.BufferGeometry | undefined;
+  let globeMat: THREE.MeshBasicMaterial | undefined;
+  let ringA: THREE.Line | undefined;
+  let ringB: THREE.Line | undefined;
+  let globeAnchor: THREE.Group | undefined;
 
-  const makeRing = (radius: number) => {
-    const pts: THREE.Vector3[] = [];
-    const segs = 96;
-    for (let i = 0; i <= segs; i++) {
-      const a = (i / segs) * Math.PI * 2;
-      pts.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
+  if (!isApp) {
+    globeGeo = new THREE.IcosahedronGeometry(3.4, 1);
+    globeMat = new THREE.MeshBasicMaterial({
+      color: PALETTES.dark.globe,
+      wireframe: true,
+      transparent: true,
+      opacity: PALETTES.dark.globeOpacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const globe = new THREE.Mesh(globeGeo, globeMat);
+
+    const makeRing = (radius: number) => {
+      const pts: THREE.Vector3[] = [];
+      const segs = 96;
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        pts.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
+      }
+      return new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({
+          color: PALETTES.dark.ring,
+          transparent: true,
+          opacity: PALETTES.dark.ringOpacity,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+      );
+    };
+    ringA = makeRing(4.3);
+    ringB = makeRing(5.1);
+    ringA.rotation.set(Math.PI / 2.4, 0.3, 0);
+    ringB.rotation.set(-Math.PI / 3.2, -0.4, 0.5);
+
+    globeGroup = new THREE.Group();
+    globeGroup.add(globe, ringA, ringB);
+
+    // Static anchor: positions/scales the globe on screen; only the inner
+    // globeGroup rotates, so the globe never drifts across the layout.
+    globeAnchor = new THREE.Group();
+    if (isHero) {
+      // Right half of the hero — left-aligned copy never overlaps it.
+      globeAnchor.scale.setScalar(0.8);
+      globeAnchor.position.set(6.2, -0.2, -2);
+    } else {
+      // CTA panel: smaller, pushed below the centered copy.
+      globeAnchor.scale.setScalar(0.5);
+      globeAnchor.position.set(0, -3.2, -4);
     }
-    return new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(pts),
-      new THREE.LineBasicMaterial({
-        color: PALETTES.dark.ring,
-        transparent: true,
-        opacity: PALETTES.dark.ringOpacity,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      })
-    );
-  };
-  const ringA = makeRing(4.3);
-  const ringB = makeRing(5.1);
-  ringA.rotation.set(Math.PI / 2.4, 0.3, 0);
-  ringB.rotation.set(-Math.PI / 3.2, -0.4, 0.5);
-
-  const globeGroup = new THREE.Group();
-  globeGroup.add(globe, ringA, ringB);
-
-  // Static anchor: positions/scales the globe on screen; only the inner
-  // globeGroup rotates, so the globe never drifts across the layout.
-  const globeAnchor = new THREE.Group();
-  if (isHero) {
-    // Right half of the hero — left-aligned copy never overlaps it.
-    globeAnchor.scale.setScalar(0.8);
-    globeAnchor.position.set(6.2, -0.2, -2);
-  } else {
-    // CTA panel: smaller, pushed below the centered copy.
-    globeAnchor.scale.setScalar(0.5);
-    globeAnchor.position.set(0, -3.2, -4);
+    globeAnchor.add(globeGroup);
   }
-  globeAnchor.add(globeGroup);
 
   const group = new THREE.Group();
   group.add(points, links);
-  scene.add(group, globeAnchor);
+  scene.add(group);
+  if (globeAnchor) scene.add(globeAnchor);
 
   const timer = new THREE.Timer();
 
@@ -220,6 +234,7 @@ function buildScene(container: HTMLElement, variant: Variant): SceneState {
     linksMat,
     globeMat,
     timer,
+    opacityFactor,
     raf: 0,
     running: true,
     mouse: { x: 0, y: 0 },
@@ -270,10 +285,12 @@ export default function ThreeBackground({
       ).needsUpdate = true;
 
       state.group.rotation.y += dt * 0.05;
-      state.globeGroup.rotation.y += dt * 0.12;
-      state.globeGroup.rotation.x += dt * 0.02;
-      state.ringA.rotation.z += dt * 0.08;
-      state.ringB.rotation.z -= dt * 0.05;
+      if (state.globeGroup) {
+        state.globeGroup.rotation.y += dt * 0.12;
+        state.globeGroup.rotation.x += dt * 0.02;
+      }
+      if (state.ringA) state.ringA.rotation.z += dt * 0.08;
+      if (state.ringB) state.ringB.rotation.z -= dt * 0.05;
 
       state.camera.position.x +=
         (state.mouse.x * 0.7 - state.camera.position.x) * 0.04;
@@ -326,14 +343,18 @@ export default function ThreeBackground({
       state.renderer.dispose();
       state.pointsGeo.dispose();
       state.linkGeo.dispose();
-      state.globeGeo.dispose();
-      ringA.geometry.dispose();
-      ringB.geometry.dispose();
-      (ringA.material as THREE.Material).dispose();
-      (ringB.material as THREE.Material).dispose();
+      if (state.globeGeo) state.globeGeo.dispose();
+      if (state.ringA) {
+        state.ringA.geometry.dispose();
+        (state.ringA.material as THREE.Material).dispose();
+      }
+      if (state.ringB) {
+        state.ringB.geometry.dispose();
+        (state.ringB.material as THREE.Material).dispose();
+      }
       state.pointsMat.dispose();
       state.linksMat.dispose();
-      state.globeMat.dispose();
+      if (state.globeMat) state.globeMat.dispose();
       if (state.renderer.domElement.parentElement === container) {
         container.removeChild(state.renderer.domElement);
       }
@@ -350,27 +371,33 @@ export default function ThreeBackground({
     const additive = theme === "dark";
 
     state.pointsMat.color.copy(p.point);
-    state.pointsMat.opacity = p.pointOpacity;
+    state.pointsMat.opacity = p.pointOpacity * state.opacityFactor;
     state.pointsMat.blending = additive
       ? THREE.AdditiveBlending
       : THREE.NormalBlending;
 
     state.linksMat.color.copy(p.link);
-    state.linksMat.opacity = p.linkOpacity;
+    state.linksMat.opacity = p.linkOpacity * state.opacityFactor;
     state.linksMat.blending = additive
       ? THREE.AdditiveBlending
       : THREE.NormalBlending;
 
-    state.globeMat.color.copy(p.globe);
-    state.globeMat.opacity = p.globeOpacity;
-    state.globeMat.blending = additive
-      ? THREE.AdditiveBlending
-      : THREE.NormalBlending;
+    if (state.globeMat) {
+      state.globeMat.color.copy(p.globe);
+      state.globeMat.opacity = p.globeOpacity;
+      state.globeMat.blending = additive
+        ? THREE.AdditiveBlending
+        : THREE.NormalBlending;
+    }
 
-    (state.ringA.material as THREE.LineBasicMaterial).color.copy(p.ring);
-    (state.ringB.material as THREE.LineBasicMaterial).color.copy(p.ring);
-    (state.ringA.material as THREE.LineBasicMaterial).opacity = p.ringOpacity;
-    (state.ringB.material as THREE.LineBasicMaterial).opacity = p.ringOpacity;
+    if (state.ringA) {
+      (state.ringA.material as THREE.LineBasicMaterial).color.copy(p.ring);
+      (state.ringA.material as THREE.LineBasicMaterial).opacity = p.ringOpacity;
+    }
+    if (state.ringB) {
+      (state.ringB.material as THREE.LineBasicMaterial).color.copy(p.ring);
+      (state.ringB.material as THREE.LineBasicMaterial).opacity = p.ringOpacity;
+    }
   }, [resolvedTheme]);
 
   return (

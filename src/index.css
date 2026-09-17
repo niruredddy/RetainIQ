@@ -113,6 +113,17 @@
     -webkit-backdrop-filter: blur(14px);
   }
 
+  .shimmer {
+    background: linear-gradient(
+      110deg,
+      transparent 25%,
+      hsl(var(--foreground) / 0.08) 50%,
+      transparent 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+
   .gradient-text {
     background: linear-gradient(
       120deg,
