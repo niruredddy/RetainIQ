@@ -7,6 +7,7 @@ import { TopHeader } from "./top-header";
 import { CommandPalette } from "./command-palette";
 import { PageShell } from "./page-shell";
 import { Button } from "@/components/ui/button";
+import { useRealtimeInvalidate } from "@/hooks/use-realtime";
 
 const ThreeBackground = lazy(() => import("./site/three-background"));
 
@@ -15,6 +16,12 @@ export default function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
+
+  // Live-refresh open screens whenever the database changes.
+  useRealtimeInvalidate(
+    ["workflows", "employees"],
+    [["workflows"], ["employees"], ["mobility-plan"]]
+  );
 
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-background">

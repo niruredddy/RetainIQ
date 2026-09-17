@@ -3,6 +3,7 @@ import { ArrowRight, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { useMobilityPlan } from "@/hooks/use-mobility-plan";
+import { useEmployees } from "@/hooks/use-employees";
 import { cn } from "@/lib/utils";
 
 function useCountUp(target: number, duration = 1200, delay = 250) {
@@ -82,9 +83,23 @@ function SkeletonGrid() {
 
 export default function MobilityMatcher() {
   const { data: plan, isLoading, isError } = useMobilityPlan();
-  const alignment = useCountUp(plan?.match_score ?? 0);
+  const { data: employees } = useEmployees();
 
-  if (isLoading) {
+  // ---- Live computation from real data ----
+  // Current competencies = the employee's actual skill matrix (employees table).
+  // Match score and gaps are derived at runtime: required (target role) vs current.
+  const liveEmployee = employees?.[0];
+  const current = liveEmployee?.skill_matrix ?? [];
+  const required = plan?.required_skills ?? [];
+  const overlap = current.filter((skill) => required.includes(skill));
+  const gaps = required.filter((skill) => !current.includes(skill));
+  const match = required.length
+    ? Math.round((overlap.length / required.length) * 100)
+    : 0;
+
+  const alignment = useCountUp(match);
+
+  if (isLoading || (!plan && !isError)) {
     return (
       <>
         <PageHeader
@@ -114,8 +129,6 @@ export default function MobilityMatcher() {
     );
   }
 
-  const competencies = plan.current_competencies ?? [];
-  const delta = plan.skill_delta ?? [];
   const target = plan.target_role ?? { title: "", department: "", openings: 0 };
   const phases = plan.roadmap_phases ?? [];
 
@@ -134,10 +147,10 @@ export default function MobilityMatcher() {
               Current Competencies
             </p>
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-              {competencies.length} VERIFIED SKILLS
+              {current.length} VERIFIED SKILLS
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {competencies.map((skill) => (
+              {current.map((skill) => (
                 <Tag key={skill}>{skill}</Tag>
               ))}
             </div>
@@ -174,7 +187,7 @@ export default function MobilityMatcher() {
               />
             </div>
             <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-              {competencies.length} PRESENT · {delta.length} GAPS · {plan.match_score}% ALIGNED
+              {overlap.length} PRESENT · {gaps.length} GAPS · {match}% ALIGNED
             </p>
           </CardContent>
         </Card>
@@ -186,10 +199,10 @@ export default function MobilityMatcher() {
               Skill Delta (Gap)
             </p>
             <p className="mt-1 font-mono text-[11px] text-destructive">
-              MISSING · {delta.length} TO CLOSE
+              MISSING · {gaps.length} TO CLOSE
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {delta.map((skill) => (
+              {gaps.map((skill) => (
                 <Tag key={skill} variant="gap">
                   {skill}
                 </Tag>

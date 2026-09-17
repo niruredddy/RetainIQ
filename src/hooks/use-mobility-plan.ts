@@ -13,6 +13,7 @@ export interface MobilityPlan {
   id: string;
   employee_code: string;
   current_competencies: string[];
+  required_skills: string[];
   target_role: { title: string; department: string; openings: number };
   match_score: number;
   skill_delta: string[];

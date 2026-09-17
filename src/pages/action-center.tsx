@@ -166,6 +166,13 @@ export default function ActionCenter() {
           </div>
 
           <CardContent className="p-5 lg:p-6">
+            {workflowNodes.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="font-mono text-xs tracking-widest text-muted-foreground">
+                  NO WORKFLOW NODES CONFIGURED
+                </p>
+              </div>
+            ) : (
             <div className="relative">
               {workflowNodes.map((node, i) => {
                 const done = completed.includes(i);
@@ -237,6 +244,7 @@ export default function ActionCenter() {
                 );
               })}
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

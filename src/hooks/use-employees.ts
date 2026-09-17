@@ -22,6 +22,7 @@ export interface EmployeeRecord {
   status: EmployeeStatus;
   attendance_pattern: AttendancePoint[];
   peer_sentiment: number;
+  peer_sentiment_baseline: number;
   skill_matrix: string[];
 }
 

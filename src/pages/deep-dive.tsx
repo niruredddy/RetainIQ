@@ -165,7 +165,22 @@ export default function DeepDive() {
 
   const attendance = live?.attendance_pattern ?? [];
   const sentiment = live?.peer_sentiment ?? 0;
+  const sentimentBaseline = live?.peer_sentiment_baseline ?? 92;
   const skills = live?.skill_matrix ?? [];
+
+  // Live-derived attendance readout: peak day vs average.
+  const avgHours = attendance.length
+    ? attendance.reduce((sum, p) => sum + p.hours, 0) / attendance.length
+    : 0;
+  const peak = attendance.reduce(
+    (best, p) => (p.hours > best.hours ? p : best),
+    { day: "", hours: 0 }
+  );
+  const spikeDelta = peak.hours - avgHours;
+  const spikeLabel =
+    spikeDelta > 0.8
+      ? `SPIKE DETECTED · +${spikeDelta.toFixed(1)}H ON ${peak.day.toUpperCase()}`
+      : `PATTERN NORMAL · AVG ${avgHours.toFixed(1)}H`;
 
   const [state, setState] = useState<PanelState>("idle");
   const [result, setResult] = useState<DiagnosticResult | null>(null);
@@ -264,7 +279,7 @@ export default function DeepDive() {
                   Attendance Pattern
                 </p>
                 <p className="mb-3 mt-1 font-mono text-[11px] text-destructive">
-                  SPIKE DETECTED · +12.2H
+                  {spikeLabel}
                 </p>
                 <div className="h-24">
                   <ResponsiveContainer width="100%" height="100%">
@@ -315,7 +330,7 @@ export default function DeepDive() {
                   <Gauge value={sentiment} />
                 </div>
                 <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-                  BASELINE 92 → NOW 68
+                  BASELINE {sentimentBaseline} → NOW {sentiment}
                 </p>
               </CardContent>
             </Card>

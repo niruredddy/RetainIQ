@@ -64,6 +64,7 @@ export type Database = {
           name: string
           overtime_spike: number
           peer_sentiment: number
+          peer_sentiment_baseline: number
           risk_score: number
           role: string
           sentiment_drop: number
@@ -82,6 +83,7 @@ export type Database = {
           name: string
           overtime_spike?: number
           peer_sentiment?: number
+          peer_sentiment_baseline?: number
           risk_score?: number
           role: string
           sentiment_drop?: number
@@ -100,6 +102,7 @@ export type Database = {
           name?: string
           overtime_spike?: number
           peer_sentiment?: number
+          peer_sentiment_baseline?: number
           risk_score?: number
           role?: string
           sentiment_drop?: number
@@ -117,6 +120,7 @@ export type Database = {
           employee_code: string
           id: string
           match_score: number
+          required_skills: Json
           roadmap_phases: Json
           skill_delta: Json
           target_role: Json
@@ -128,6 +132,7 @@ export type Database = {
           employee_code: string
           id?: string
           match_score?: number
+          required_skills?: Json
           roadmap_phases?: Json
           skill_delta?: Json
           target_role?: Json
@@ -139,6 +144,7 @@ export type Database = {
           employee_code?: string
           id?: string
           match_score?: number
+          required_skills?: Json
           roadmap_phases?: Json
           skill_delta?: Json
           target_role?: Json
