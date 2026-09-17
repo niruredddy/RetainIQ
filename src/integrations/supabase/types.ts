@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       employees: {
         Row: {
+          attendance_pattern: Json
           created_at: string
           employee_code: string
           gradient: string
@@ -23,14 +24,17 @@ export type Database = {
           initials: string
           name: string
           overtime_spike: number
+          peer_sentiment: number
           risk_score: number
           role: string
           sentiment_drop: number
+          skill_matrix: Json
           status: string
           tenure: string
           updated_at: string
         }
         Insert: {
+          attendance_pattern?: Json
           created_at?: string
           employee_code: string
           gradient: string
@@ -38,14 +42,17 @@ export type Database = {
           initials: string
           name: string
           overtime_spike?: number
+          peer_sentiment?: number
           risk_score?: number
           role: string
           sentiment_drop?: number
+          skill_matrix?: Json
           status?: string
           tenure: string
           updated_at?: string
         }
         Update: {
+          attendance_pattern?: Json
           created_at?: string
           employee_code?: string
           gradient?: string
@@ -53,14 +60,60 @@ export type Database = {
           initials?: string
           name?: string
           overtime_spike?: number
+          peer_sentiment?: number
           risk_score?: number
           role?: string
           sentiment_drop?: number
+          skill_matrix?: Json
           status?: string
           tenure?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      mobility_plan: {
+        Row: {
+          created_at: string
+          current_competencies: Json
+          employee_code: string
+          id: string
+          match_score: number
+          roadmap_phases: Json
+          skill_delta: Json
+          target_role: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_competencies?: Json
+          employee_code: string
+          id?: string
+          match_score?: number
+          roadmap_phases?: Json
+          skill_delta?: Json
+          target_role?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_competencies?: Json
+          employee_code?: string
+          id?: string
+          match_score?: number
+          roadmap_phases?: Json
+          skill_delta?: Json
+          target_role?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobility_plan_employee_code_fkey"
+            columns: ["employee_code"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["employee_code"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -85,6 +138,65 @@ export type Database = {
           role?: string
         }
         Relationships: []
+      }
+      workflow_nodes: {
+        Row: {
+          created_at: string
+          id: string
+          owner: string
+          position: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner: string
+          position: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner?: string
+          position?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      workflows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

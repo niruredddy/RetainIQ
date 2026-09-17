@@ -6,10 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { RiskBadge } from "@/components/risk-badge";
-import { focusEmployee, workflowNodes } from "@/data/dashboard";
+import { useEmployees } from "@/hooks/use-employees";
+import {
+  completeWorkflow,
+  startWorkflow,
+  useInvalidateWorkflows,
+  useWorkflowNodes,
+} from "@/hooks/use-workflows";
 import { cn } from "@/lib/utils";
 
 export default function ActionCenter() {
+  const { data: employees } = useEmployees();
+  const { data: nodes } = useWorkflowNodes();
+  const invalidateWorkflows = useInvalidateWorkflows();
+  const focusEmployee = employees?.[0] ?? null;
+  const workflowNodes = nodes ?? [];
+
   const [completed, setCompleted] = useState<number[]>([]);
   const [running, setRunning] = useState(false);
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -19,20 +31,32 @@ export default function ActionCenter() {
     return () => pending.forEach(clearTimeout);
   }, []);
 
-  const execute = () => {
-    if (running) return;
+  const execute = async () => {
+    if (running || !focusEmployee) return;
     setRunning(true);
     setCompleted([]);
+
+    let wfId: string | null = null;
+    try {
+      const wf = await startWorkflow(focusEmployee.id);
+      wfId = wf.id;
+    } catch {
+      /* still animate locally even if persistence fails */
+    }
+
     workflowNodes.forEach((_, i) => {
       timeouts.current.push(
         setTimeout(() => setCompleted((c) => [...c, i]), 500 + i * 700)
       );
     });
     timeouts.current.push(
-      setTimeout(
-        () => setRunning(false),
-        500 + workflowNodes.length * 700 + 300
-      )
+      setTimeout(() => {
+        setRunning(false);
+        if (wfId) {
+          completeWorkflow(wfId).catch(() => undefined);
+        }
+        invalidateWorkflows();
+      }, 500 + workflowNodes.length * 700 + 300)
     );
   };
 
@@ -51,33 +75,43 @@ export default function ActionCenter() {
               Retention Execution Summary
             </h2>
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Case #R-0241
+              Case #{(focusEmployee?.employee_code ?? "0000").replace("EMP-", "R-")}
             </span>
           </div>
           <CardContent className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-11 w-11 ring-1 ring-border">
-                <AvatarFallback
-                  className={cn(
-                    "bg-gradient-to-br text-sm font-semibold text-white",
-                    focusEmployee.gradient
-                  )}
-                >
-                  {focusEmployee.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-display text-sm font-semibold text-foreground">
-                    {focusEmployee.name}
+            {focusEmployee ? (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-11 w-11 ring-1 ring-border">
+                  <AvatarFallback
+                    className={cn(
+                      "bg-gradient-to-br text-sm font-semibold text-white",
+                      focusEmployee.gradient
+                    )}
+                  >
+                    {focusEmployee.initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-sm font-semibold text-foreground">
+                      {focusEmployee.name}
+                    </p>
+                    <RiskBadge score={focusEmployee.risk_score} />
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {focusEmployee.role}
                   </p>
-                  <RiskBadge score={focusEmployee.riskScore} />
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {focusEmployee.role}
-                </p>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="shimmer h-11 w-11 shrink-0 rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="shimmer h-3.5 w-36 rounded bg-muted" />
+                  <div className="shimmer h-3 w-52 rounded bg-muted" />
+                </div>
+              </div>
+            )}
             <div className="rounded-lg border border-border bg-muted/30 p-3.5">
               <p className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 <FileText className="h-3 w-3" /> Recommended Action
@@ -94,8 +128,8 @@ export default function ActionCenter() {
         {/* Execute */}
         <div className="py-7">
           <Button
-            onClick={execute}
-            disabled={running}
+            onClick={() => void execute()}
+            disabled={running || !focusEmployee}
             className="mx-auto flex h-14 w-full max-w-[400px] items-center justify-center gap-2.5 bg-gradient-primary bg-[length:200%_auto] font-display text-base font-semibold text-primary-foreground shadow-glow-primary-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-glow-primary disabled:opacity-70 disabled:hover:scale-100"
           >
             <Zap

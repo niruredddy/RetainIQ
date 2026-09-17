@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
-import {
-  currentCompetencies,
-  matchScore,
-  roadmapPhases,
-  skillDelta,
-  targetRole,
-} from "@/data/dashboard";
+import { useMobilityPlan } from "@/hooks/use-mobility-plan";
 import { cn } from "@/lib/utils";
 
 function useCountUp(target: number, duration = 1200, delay = 250) {
@@ -58,8 +52,72 @@ function Tag({
   );
 }
 
+function SkeletonGrid() {
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Card key={i} className="border-border">
+            <CardContent className="p-5">
+              <div className="shimmer h-3 w-40 rounded bg-muted" />
+              <div className="shimmer mt-3 h-3 w-24 rounded bg-muted" />
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[0, 1, 2, 3].map((j) => (
+                  <div key={j} className="shimmer h-6 w-20 rounded-md bg-muted" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card className="mt-4 border-border">
+        <CardContent className="p-6">
+          <div className="shimmer h-4 w-56 rounded bg-muted" />
+          <div className="shimmer mt-4 h-20 w-full rounded bg-muted" />
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 export default function MobilityMatcher() {
-  const alignment = useCountUp(matchScore);
+  const { data: plan, isLoading, isError } = useMobilityPlan();
+  const alignment = useCountUp(plan?.match_score ?? 0);
+
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader
+          title="Mobility Matcher"
+          description="Dynamic skill-graph gap matching against open internal requisitions."
+        />
+        <SkeletonGrid />
+      </>
+    );
+  }
+
+  if (isError || !plan) {
+    return (
+      <>
+        <PageHeader
+          title="Mobility Matcher"
+          description="Dynamic skill-graph gap matching against open internal requisitions."
+        />
+        <Card className="border-border">
+          <CardContent className="p-10 text-center">
+            <p className="font-mono text-xs tracking-widest text-destructive">
+              NO MOBILITY PLAN AVAILABLE
+            </p>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
+  const competencies = plan.current_competencies ?? [];
+  const delta = plan.skill_delta ?? [];
+  const target = plan.target_role ?? { title: "", department: "", openings: 0 };
+  const phases = plan.roadmap_phases ?? [];
 
   return (
     <>
@@ -76,10 +134,10 @@ export default function MobilityMatcher() {
               Current Competencies
             </p>
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-              {currentCompetencies.length} VERIFIED SKILLS
+              {competencies.length} VERIFIED SKILLS
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {currentCompetencies.map((skill) => (
+              {competencies.map((skill) => (
                 <Tag key={skill}>{skill}</Tag>
               ))}
             </div>
@@ -93,10 +151,10 @@ export default function MobilityMatcher() {
               <Target className="h-3 w-3" /> Internal Requisition
             </span>
             <h3 className="mt-4 font-display text-xl font-semibold tracking-tight text-foreground">
-              {targetRole.title}
+              {target.title}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {targetRole.department} · {targetRole.openings} openings
+              {target.department} · {target.openings} openings
             </p>
 
             <div className="mt-8">
@@ -116,7 +174,7 @@ export default function MobilityMatcher() {
               />
             </div>
             <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-              10 PRESENT · {skillDelta.length} GAPS · {matchScore}% ALIGNED
+              {competencies.length} PRESENT · {delta.length} GAPS · {plan.match_score}% ALIGNED
             </p>
           </CardContent>
         </Card>
@@ -128,10 +186,10 @@ export default function MobilityMatcher() {
               Skill Delta (Gap)
             </p>
             <p className="mt-1 font-mono text-[11px] text-destructive">
-              MISSING · {skillDelta.length} TO CLOSE
+              MISSING · {delta.length} TO CLOSE
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {skillDelta.map((skill) => (
+              {delta.map((skill) => (
                 <Tag key={skill} variant="gap">
                   {skill}
                 </Tag>
@@ -140,7 +198,7 @@ export default function MobilityMatcher() {
             <div className="mt-5 rounded-lg border border-border bg-muted/30 p-3">
               <p className="text-xs leading-relaxed text-muted-foreground">
                 Closing this gap unlocks{" "}
-                <span className="font-medium text-foreground">Senior Cloud Architect</span>{" "}
+                <span className="font-medium text-foreground">{target.title}</span>{" "}
                 mobility within the current band.
               </p>
             </div>
@@ -156,7 +214,7 @@ export default function MobilityMatcher() {
               Upskilling Roadmap
             </h2>
             <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-              14-DAY SPRINT · 3 PHASES
+              14-DAY SPRINT · {phases.length} PHASES
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-success/25 bg-success/10 px-2.5 py-1 font-mono text-[10px] text-success">
@@ -172,8 +230,8 @@ export default function MobilityMatcher() {
           />
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {roadmapPhases.map((phase, i) => (
-              <div key={phase.week} className="relative">
+            {phases.map((phase, i) => (
+              <div key={`${phase.week}-${i}`} className="relative">
                 <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary bg-card font-mono text-xs font-semibold text-primary shadow-glow-primary">
                   {i + 1}
                 </div>
@@ -184,7 +242,7 @@ export default function MobilityMatcher() {
                   {phase.phase}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {phase.topics.map((topic) => (
+                  {(phase.topics ?? []).map((topic) => (
                     <span
                       key={topic}
                       className="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono text-[10px] text-foreground/90"
@@ -196,11 +254,11 @@ export default function MobilityMatcher() {
                 <div className="mt-4 h-1 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-gradient-primary"
-                    style={{ width: `${phase.progress}%` }}
+                    style={{ width: `${phase.progress ?? 0}%` }}
                   />
                 </div>
                 <p className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                  {phase.progress}% COMPLETE
+                  {phase.progress ?? 0}% COMPLETE
                 </p>
               </div>
             ))}

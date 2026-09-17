@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type EmployeeStatus = "Monitor" | "Intervene" | "Escalate";
 
+export interface AttendancePoint {
+  day: string;
+  hours: number;
+}
+
 export interface EmployeeRecord {
   id: string;
   employee_code: string;
@@ -15,6 +20,9 @@ export interface EmployeeRecord {
   sentiment_drop: number;
   risk_score: number;
   status: EmployeeStatus;
+  attendance_pattern: AttendancePoint[];
+  peer_sentiment: number;
+  skill_matrix: string[];
 }
 
 export function useEmployees() {

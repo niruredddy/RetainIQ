@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, ArrowUpRight, GitBranch, Radar, ScanSearch, Users, Workflow, Zap } from "lucide-react";
 import { RiskBadge } from "@/components/risk-badge";
 import { useEmployees } from "@/hooks/use-employees";
+import { activeWorkflowCount, useWorkflows } from "@/hooks/use-workflows";
 import { cn } from "@/lib/utils";
 const ThreeBackground = lazy(() => import("@/components/site/three-background"));
 const fadeUp = {
@@ -67,10 +68,15 @@ export default function Dashboard() {
     isLoading,
     isError
   } = useEmployees();
+  const { data: workflows, isLoading: workflowsLoading } = useWorkflows();
   const total = employees?.length;
   const critical = employees?.filter(e => e.risk_score > 70).length;
-  const statValues = [isLoading ? "…" : String(total ?? 0), isLoading ? "…" : String(critical ?? 0), "7"];
+  const active = activeWorkflowCount(workflows);
+  const statValues = [isLoading ? "…" : String(total ?? 0), isLoading ? "…" : String(critical ?? 0), workflowsLoading ? "…" : String(active)];
   const topSignals = employees?.slice(0, 4) ?? [];
+  const heroCopy = isLoading
+    ? "Loading live workforce signals…"
+    : `${total} employees monitored in real time. ${critical} critical signals and ${active} active workflows. Pick a module below to inspect, diagnose and act.`;
   return <div className="space-y-6">
       {/* ---- 3D Hero ---- */}
       <section className="relative -mx-5 overflow-hidden rounded-b-none px-5 lg:-mx-8 lg:px-8">
@@ -92,7 +98,7 @@ export default function Dashboard() {
             <span className="gradient-text">Your workforce is under control.</span>
           </motion.h1>
 
-          <motion.p variants={fadeUp} custom={2} initial="hidden" animate="show" className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">{"8 employees monitored in real time. 3 critical signals need attention. Pick a module below to inspect, diagnose and act."}</motion.p>
+          <motion.p variants={fadeUp} custom={2} initial="hidden" animate="show" className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">{heroCopy}</motion.p>
 
           {/* Quick stats */}
           <motion.div variants={fadeUp} custom={3} initial="hidden" animate="show" className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">

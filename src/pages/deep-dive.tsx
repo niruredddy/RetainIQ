@@ -21,12 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { RiskBadge } from "@/components/risk-badge";
-import {
-  attendancePattern,
-  focusEmployee as demoFocus,
-  peerSentiment,
-  skillMatrix,
-} from "@/data/dashboard";
 import { useEmployees } from "@/hooks/use-employees";
 import { runDiagnostic, type DiagnosticResult } from "@/lib/diagnostic";
 import { cn } from "@/lib/utils";
@@ -155,7 +149,7 @@ function Gauge({ value }: { value: number }) {
 type PanelState = "idle" | "loading" | "done";
 
 export default function DeepDive() {
-  const { data: employees } = useEmployees();
+  const { data: employees, isLoading } = useEmployees();
   const live = employees?.[0];
   const focusEmployee = live
     ? {
@@ -167,7 +161,11 @@ export default function DeepDive() {
         tenure: live.tenure,
         riskScore: live.risk_score,
       }
-    : demoFocus;
+    : null;
+
+  const attendance = live?.attendance_pattern ?? [];
+  const sentiment = live?.peer_sentiment ?? 0;
+  const skills = live?.skill_matrix ?? [];
 
   const [state, setState] = useState<PanelState>("idle");
   const [result, setResult] = useState<DiagnosticResult | null>(null);
@@ -179,7 +177,7 @@ export default function DeepDive() {
   );
 
   const run = async () => {
-    if (state === "loading") return;
+    if (state === "loading" || !focusEmployee) return;
     setState("loading");
     setResult(null);
     try {
@@ -213,33 +211,45 @@ export default function DeepDive() {
         <div className="space-y-4 lg:col-span-3">
           <Card className="border-border">
             <CardContent className="flex flex-wrap items-center gap-4 p-5">
-              <Avatar className="h-12 w-12 ring-1 ring-border">
-                <AvatarFallback
-                  className={cn(
-                    "bg-gradient-to-br text-sm font-semibold text-white",
-                    focusEmployee.gradient
-                  )}
-                >
-                  {focusEmployee.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="font-display text-base font-semibold text-foreground">
-                    {focusEmployee.name}
-                  </h2>
-                  <RiskBadge score={focusEmployee.riskScore} />
+              {focusEmployee ? (
+                <>
+                  <Avatar className="h-12 w-12 ring-1 ring-border">
+                    <AvatarFallback
+                      className={cn(
+                        "bg-gradient-to-br text-sm font-semibold text-white",
+                        focusEmployee.gradient
+                      )}
+                    >
+                      {focusEmployee.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="font-display text-base font-semibold text-foreground">
+                        {focusEmployee.name}
+                      </h2>
+                      <RiskBadge score={focusEmployee.riskScore} />
+                    </div>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {focusEmployee.role}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 font-mono text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" /> TENURE {focusEmployee.tenure}
+                    </span>
+                    <span>ID {focusEmployee.id}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex w-full items-center gap-4">
+                  <div className="shimmer h-12 w-12 shrink-0 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="shimmer h-4 w-40 rounded bg-muted" />
+                    <div className="shimmer h-3 w-56 rounded bg-muted" />
+                  </div>
                 </div>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {focusEmployee.role}
-                </p>
-              </div>
-              <div className="flex items-center gap-4 font-mono text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" /> TENURE {focusEmployee.tenure}
-                </span>
-                <span>ID {focusEmployee.id}</span>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -255,7 +265,7 @@ export default function DeepDive() {
                 </p>
                 <div className="h-24">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={attendancePattern} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                    <AreaChart data={attendance} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="attendFill" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.35} />
@@ -299,7 +309,7 @@ export default function DeepDive() {
                   Peer Review Sentiment
                 </p>
                 <div className="mt-3">
-                  <Gauge value={peerSentiment} />
+                  <Gauge value={sentiment} />
                 </div>
                 <p className="mt-2 font-mono text-[11px] text-muted-foreground">
                   BASELINE 92 → NOW 68
@@ -314,10 +324,10 @@ export default function DeepDive() {
                   Skill Matrix
                 </p>
                 <p className="mb-3 mt-1 font-mono text-[11px] text-muted-foreground">
-                  10 VERIFIED · 2 IN REVIEW
+                  {skills.length} VERIFIED
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {skillMatrix.map((skill) => (
+                  {skills.map((skill) => (
                     <span
                       key={skill}
                       className="rounded-md border border-border bg-muted/40 px-2 py-1 font-mono text-[10px] text-foreground/80"
@@ -332,7 +342,7 @@ export default function DeepDive() {
 
           <Button
             onClick={run}
-            disabled={state === "loading"}
+            disabled={state === "loading" || !focusEmployee}
             className="h-11 w-full bg-gradient-primary text-primary-foreground shadow-glow-primary transition-all duration-200 hover:scale-[1.01] hover:shadow-glow-primary-lg disabled:opacity-70"
           >
             {state === "loading" ? (
