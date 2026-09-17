@@ -146,7 +146,7 @@ function Gauge({ value }: { value: number }) {
 
 /* ---------- Page ---------- */
 
-type PanelState = "idle" | "loading" | "done";
+type PanelState = "idle" | "loading" | "done" | "error";
 
 export default function DeepDive() {
   const { data: employees, isLoading } = useEmployees();
@@ -169,6 +169,7 @@ export default function DeepDive() {
 
   const [state, setState] = useState<PanelState>("idle");
   const [result, setResult] = useState<DiagnosticResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const json = useMemo(
@@ -180,12 +181,14 @@ export default function DeepDive() {
     if (state === "loading" || !focusEmployee) return;
     setState("loading");
     setResult(null);
+    setError(null);
     try {
       const res = await runDiagnostic(focusEmployee.id);
       setResult(res);
       setState("done");
-    } catch {
-      setState("idle");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Diagnostic failed.");
+      setState("error");
     }
   };
 
@@ -406,6 +409,20 @@ export default function DeepDive() {
                     style={{ width: `${w}%`, animationDelay: `${i * 80}ms` }}
                   />
                 ))}
+              </div>
+            )}
+
+            {state === "error" && (
+              <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-3 text-center">
+                <p className="font-mono text-xs tracking-widest text-destructive">
+                  DIAGNOSTIC FAILED
+                </p>
+                <p className="max-w-[280px] text-xs leading-relaxed text-zinc-500">
+                  {error}
+                </p>
+                <Button variant="outline" size="sm" onClick={run}>
+                  Retry
+                </Button>
               </div>
             )}
 

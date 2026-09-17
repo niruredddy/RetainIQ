@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_threads: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          latest_history_turn_id: number
+          running_turn_id: number | null
+          thread_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          latest_history_turn_id?: number
+          running_turn_id?: number | null
+          thread_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          latest_history_turn_id?: number
+          running_turn_id?: number | null
+          thread_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           attendance_pattern: Json

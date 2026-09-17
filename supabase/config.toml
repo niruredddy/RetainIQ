@@ -1,1 +1,4 @@
 project_id = "asbgkynqicvthbxkxiqo"
+
+[functions.custom-agent]
+verify_jwt = true

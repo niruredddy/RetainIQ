@@ -1,4 +1,4 @@
-import { diagnosticPayload } from "@/data/dashboard";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface DiagnosticResult {
   id: string;
@@ -7,21 +7,38 @@ export interface DiagnosticResult {
   payload: unknown;
 }
 
+/** Published RetainIQ Qwen reasoning agent (Enter custom agent). */
+export const DIAGNOSTIC_AGENT_ID = "ff08b4ab-1410-4d0d-9a88-ff4103ea0e64";
+
 /**
  * Runs the Qwen reasoning diagnostic for an employee.
  *
- * NOTE: Currently returns the demo payload after a simulated latency so the
- * UI skeleton shimmer is exercised. This is the single swap point for the
- * future real AI agent integration (Enter Cloud backend function + AI
- * capability) — the Deep-Dive UI only consumes this promise, so wiring in a
- * real call later touches this file alone.
+ * Calls the Enter Cloud backend function `custom-agent`, which authenticates
+ * the caller, creates a serving thread, runs the published custom agent, and
+ * returns the structured diagnostic payload. The Enter API key stays
+ * server-side — it never reaches the browser.
  */
 export async function runDiagnostic(employeeId: string): Promise<DiagnosticResult> {
-  await new Promise((resolve) => setTimeout(resolve, 1800));
-  return {
-    id: `DGN-${Date.now()}`,
-    generatedAt: new Date().toISOString(),
-    employeeId,
-    payload: diagnosticPayload,
-  };
+  const { data, error } = await supabase.functions.invoke("custom-agent", {
+    body: {
+      action: "diagnose",
+      agentId: DIAGNOSTIC_AGENT_ID,
+      employeeId,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message ?? "Diagnostic failed.");
+  }
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !("payload" in data) ||
+    !("employeeId" in data)
+  ) {
+    throw new Error("Unexpected diagnostic response.");
+  }
+
+  return data as DiagnosticResult;
 }
