@@ -132,136 +132,40 @@ async function persistThread(
     title: thread.name ?? null,
   });
   if (error) {
-    // Sanitized log only — never log keys or message content.
     console.error("agent_threads insert failed", error.code ?? error.message);
   }
 }
 
-/**
- * Consume the AG-UI SSE stream, returning the final assistant text.
- * Exits as soon as a terminal event arrives (rather than waiting for the
- * stream to close) and is bounded by the caller's abort signal.
- */
-async function consumeSseStream(
-  body: ReadableStream<Uint8Array>,
-  signal: AbortSignal
-): Promise<{ text: string; finished: boolean }> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
+/** Extract text from an array of stored AG-UI events. */
+function extractTextFromEvents(events: unknown[]): string {
   let lastText = "";
-  let finished = false;
-
-  try {
-    while (true) {
-      if (signal.aborted) break;
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const data = trimmed.slice(5).trim();
-        if (!data) continue;
-        try {
-          const evt = JSON.parse(data);
-          const type = String(evt?.type ?? "").toLowerCase();
-          const content = evt?.message?.content;
-          if ((type.includes("message") || type.includes("text")) && content) {
-            if (Array.isArray(content)) {
-              const text = content
-                .filter(
-                  (p: { type?: string; text?: string }) =>
-                    p?.type === "text" && typeof p.text === "string"
-                )
-                .map((p: { text: string }) => p.text)
-                .join("\n");
-              if (text) lastText = text;
-            } else if (typeof content === "string" && content) {
-              lastText = content;
-            }
-          }
-          // Terminal: stop reading as soon as the run completes.
-          if (
-            type.includes("finish") ||
-            type.includes("complete") ||
-            type.includes("end") ||
-            evt?.event?.name === "agent.turn.complete" ||
-            evt?.event?.name === "agent.run.completed"
-          ) {
-            finished = true;
-          }
-        } catch {
-          /* skip malformed records */
-        }
+  for (const raw of events ?? []) {
+    let evt: { type?: string; message?: { content?: unknown } } = raw as never;
+    if (typeof raw === "string") {
+      try {
+        evt = JSON.parse(raw);
+      } catch {
+        continue;
       }
-      if (finished) break;
     }
-  } catch {
-    /* aborted or stream error */
-  } finally {
-    try {
-      await reader.cancel();
-    } catch {
-      /* already closed */
+    const type = String(evt?.type ?? "").toLowerCase();
+    const content = evt?.message?.content;
+    if ((type.includes("message") || type.includes("text")) && content) {
+      if (Array.isArray(content)) {
+        const text = content
+          .filter(
+            (p: { type?: string; text?: string }) =>
+              p?.type === "text" && typeof p.text === "string"
+          )
+          .map((p: { text: string }) => p.text)
+          .join("\n");
+        if (text) lastText = text;
+      } else if (typeof content === "string" && content) {
+        lastText = content;
+      }
     }
   }
-  return { text: lastText, finished };
-}
-
-async function runAgent(agentId: string, threadId: string, userMessage: string) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 75_000);
-
-  try {
-    const upstream = await fetch(enterUrl(`/agents/${agentId}/run`), {
-      method: "POST",
-      headers: { ...enterHeaders(), Accept: "text/event-stream" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        threadId,
-        messages: [
-          { id: `user-${Date.now()}`, role: "user", content: userMessage },
-        ],
-        state: {},
-        context: [],
-        tools: [],
-        forwardedProps: {},
-      }),
-    });
-    if (!upstream.ok) {
-      throw errorJson("AGENT_RUN_FAILED", "Agent run failed.", 502);
-    }
-    if (!upstream.body) {
-      throw errorJson("AGENT_RUN_FAILED", "Empty agent response stream.", 502);
-    }
-    const { text, finished } = await consumeSseStream(
-      upstream.body,
-      controller.signal
-    );
-    if (!text && !finished) {
-      throw errorJson(
-        "AGENT_RUN_TIMEOUT",
-        "Agent did not respond in time. Please retry.",
-        504
-      );
-    }
-    return text;
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw errorJson(
-        "AGENT_RUN_TIMEOUT",
-        "Agent run timed out after 75s. Please retry.",
-        504
-      );
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
+  return lastText;
 }
 
 function extractJson(text: string): unknown | null {
@@ -277,21 +181,7 @@ function extractJson(text: string): unknown | null {
   }
 }
 
-async function diagnose(
-  agentId: string,
-  userId: string,
-  userClient: ReturnType<typeof createClient>,
-  employeeId: string
-) {
-  const { data: emp, error: empError } = await userClient
-    .from("employees")
-    .select("*")
-    .eq("employee_code", employeeId)
-    .maybeSingle();
-  if (empError || !emp) {
-    throw errorJson("EMPLOYEE_NOT_FOUND", "Employee not found.", 404);
-  }
-
+function buildPrompt(emp: Record<string, unknown>): string {
   const context = {
     employee: {
       employee_code: emp.employee_code,
@@ -309,8 +199,7 @@ async function diagnose(
       skill_matrix: emp.skill_matrix,
     },
   };
-
-  const prompt = [
+  return [
     "You are the RetainIQ Qwen reasoning engine. Analyze the employee telemetry below",
     "and produce a structured retention-risk diagnostic.",
     "",
@@ -323,6 +212,26 @@ async function diagnose(
     "Required output schema (replace the placeholder values with your analysis):",
     JSON.stringify(DIAGNOSTIC_SCHEMA, null, 2),
   ].join("\n");
+}
+
+/**
+ * Phase 1: create the thread, fire the run, and return immediately.
+ * The turn keeps executing in Enter Serving even after we disconnect.
+ */
+async function startDiagnose(
+  agentId: string,
+  userId: string,
+  userClient: ReturnType<typeof createClient>,
+  employeeId: string
+) {
+  const { data: emp, error: empError } = await userClient
+    .from("employees")
+    .select("*")
+    .eq("employee_code", employeeId)
+    .maybeSingle();
+  if (empError || !emp) {
+    throw errorJson("EMPLOYEE_NOT_FOUND", "Employee not found.", 404);
+  }
 
   const thread = await createThread(agentId);
   if (thread.status >= 400) {
@@ -331,18 +240,102 @@ async function diagnose(
   await persistThread(userId, agentId, thread.body, userClient);
   const threadId = String(thread.body.thread_id);
 
-  const answer = await runAgent(agentId, threadId, prompt);
-  const payload = extractJson(answer) ?? {
-    raw_response: answer,
+  const prompt = buildPrompt(emp);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+  try {
+    const upstream = await fetch(enterUrl(`/agents/${agentId}/run`), {
+      method: "POST",
+      headers: { ...enterHeaders(), Accept: "text/event-stream" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        threadId,
+        messages: [
+          { id: `user-${Date.now()}`, role: "user", content: prompt },
+        ],
+        state: {},
+        context: [],
+        tools: [],
+        forwardedProps: {},
+      }),
+    });
+    if (!upstream.ok) {
+      throw errorJson("AGENT_RUN_FAILED", "Agent run failed to start.", 502);
+    }
+    // Confirm the stream started, then disconnect; the turn continues in Serving.
+    if (upstream.body) {
+      const reader = upstream.body.getReader();
+      await reader.read().catch(() => undefined);
+      await reader.cancel().catch(() => undefined);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      // Timed out waiting for the stream — the run may still have started.
+    } else {
+      throw err;
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+
+  return { threadId };
+}
+
+/**
+ * Phase 2: short poll — returns instantly. Reports "running" until the turn
+ * is terminal, then extracts the assistant JSON payload.
+ */
+async function pollDiagnose(
+  agentId: string,
+  threadId: string
+) {
+  const threadRes = await fetch(
+    enterUrl(`/agents/${agentId}/threads/${threadId}`),
+    { headers: enterHeaders() }
+  );
+  if (!threadRes.ok) {
+    throw errorJson("AGENT_THREAD_FAILED", "Failed to read agent thread.", 502);
+  }
+  const thread = await threadRes.json().catch(() => ({}));
+
+  if (thread?.running) {
+    return { status: "running" };
+  }
+  const latest = Number(thread?.latest_history_turn_id ?? 0);
+  if (latest <= 0) {
+    return { status: "running" };
+  }
+
+  const turnsRes = await fetch(
+    enterUrl(`/agents/${agentId}/threads/${threadId}/turns?start_turn=${latest}&end_turn=${latest}`),
+    { headers: enterHeaders() }
+  );
+  if (!turnsRes.ok) {
+    return { status: "running" };
+  }
+  const turnsBody = await turnsRes.json().catch(() => ({}));
+  const turns = Array.isArray(turnsBody)
+    ? turnsBody
+    : (turnsBody as { turns?: unknown[] }).turns ?? [];
+  const turn = turns[turns.length - 1] as
+    | { status?: string; events?: unknown[] }
+    | undefined;
+  if (!turn) {
+    return { status: "running" };
+  }
+  if (turn.status === "error" || turn.status === "failed") {
+    return { status: "error", message: "Agent reported an error during the run." };
+  }
+  if (turn.status === "cancelled") {
+    return { status: "error", message: "Agent run was cancelled." };
+  }
+
+  const text = extractTextFromEvents(turn.events ?? []);
+  const payload = extractJson(text) ?? {
+    raw_response: text,
     parse_status: "failed",
   };
-
-  return {
-    id: `DGN-${Date.now()}`,
-    generatedAt: new Date().toISOString(),
-    employeeId,
-    payload,
-  };
+  return { status: "done", payload };
 }
 
 Deno.serve(async (req) => {
@@ -364,13 +357,20 @@ Deno.serve(async (req) => {
     }
 
     const action = String(body.action ?? "");
-    if (action === "diagnose") {
+    if (action === "startDiagnose") {
       const employeeId = String(body.employeeId ?? "");
       if (!employeeId) {
         return errorJson("BAD_REQUEST", "employeeId is required.", 400);
       }
-      const result = await diagnose(agentId, user.id, userClient, employeeId);
-      return json(result);
+      return json(await startDiagnose(agentId, user.id, userClient, employeeId));
+    }
+
+    if (action === "pollDiagnose") {
+      const threadId = String(body.threadId ?? "");
+      if (!threadId) {
+        return errorJson("BAD_REQUEST", "threadId is required.", 400);
+      }
+      return json(await pollDiagnose(agentId, threadId));
     }
 
     if (action === "createThread") {
@@ -380,26 +380,11 @@ Deno.serve(async (req) => {
       return json(thread.body, thread.status);
     }
 
-    if (action === "run") {
-      const threadId = String(body.threadId ?? "");
-      const message = String(body.message ?? "");
-      if (!threadId || !message) {
-        return errorJson("BAD_REQUEST", "threadId and message are required.", 400);
-      }
-      const answer = await runAgent(agentId, threadId, message);
-      return json({ threadId, answer });
-    }
-
     return errorJson("BAD_REQUEST", "Unknown action.", 400);
   } catch (err) {
     if (err instanceof Response) {
-      // Surface the rejection code for diagnostics (sanitized — no secrets).
       const body = await err.json().catch(() => null);
-      console.error(
-        "custom-agent rejected request",
-        err.status,
-        body?.error_code
-      );
+      console.error("custom-agent rejected request", err.status, body?.error_code);
       return err;
     }
     console.error("custom-agent proxy failed", err);

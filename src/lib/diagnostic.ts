@@ -10,51 +10,72 @@ export interface DiagnosticResult {
 /** Published RetainIQ Qwen reasoning agent (Enter custom agent). */
 export const DIAGNOSTIC_AGENT_ID = "ff08b4ab-1410-4d0d-9a88-ff4103ea0e64";
 
+const POLL_INTERVAL_MS = 2500;
+const MAX_WAIT_MS = 100_000;
+
+async function invokeErrorDetail(error: unknown): Promise<string> {
+  let detail = (error as Error | null)?.message ?? "Diagnostic failed.";
+  try {
+    const ctx = (error as { context?: Response | string }).context;
+    if (ctx instanceof Response) {
+      const body = (await ctx.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      if (body?.message) detail = body.message;
+    } else if (typeof ctx === "string" && ctx) {
+      const parsed = JSON.parse(ctx) as { message?: string };
+      if (parsed?.message) detail = parsed.message;
+    }
+  } catch {
+    /* keep the default message */
+  }
+  return detail;
+}
+
 /**
- * Runs the Qwen reasoning diagnostic for an employee.
- *
- * Calls the Enter Cloud backend function `custom-agent`, which authenticates
- * the caller, creates a serving thread, runs the published custom agent, and
- * returns the structured diagnostic payload. The Enter API key stays
- * server-side — it never reaches the browser.
+ * Runs the Qwen reasoning diagnostic for an employee via the Enter Cloud
+ * backend function `custom-agent`. The function starts the agent run and
+ * returns instantly; this client polls the short status call until the turn
+ * completes. The Enter API key stays server-side.
  */
 export async function runDiagnostic(employeeId: string): Promise<DiagnosticResult> {
-  const { data, error } = await supabase.functions.invoke("custom-agent", {
-    body: {
-      action: "diagnose",
-      agentId: DIAGNOSTIC_AGENT_ID,
-      employeeId,
-    },
+  const started = await supabase.functions.invoke("custom-agent", {
+    body: { action: "startDiagnose", agentId: DIAGNOSTIC_AGENT_ID, employeeId },
   });
+  if (started.error) {
+    throw new Error(await invokeErrorDetail(started.error));
+  }
+  const threadId = (started.data as { threadId?: string } | null)?.threadId;
+  if (!threadId) {
+    throw new Error("Failed to start the diagnostic.");
+  }
 
-  if (error) {
-    // Surface the backend function's real error code/message when available.
-    let detail = error.message ?? "Diagnostic failed.";
-    try {
-      const ctx = (error as { context?: Response | string }).context;
-      if (ctx instanceof Response) {
-        const body = (await ctx.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-        if (body?.message) detail = body.message;
-      } else if (typeof ctx === "string" && ctx) {
-        const body = JSON.parse(ctx) as { message?: string };
-        if (body?.message) detail = body.message;
-      }
-    } catch {
-      /* keep the default message */
+  const deadline = Date.now() + MAX_WAIT_MS;
+  while (Date.now() < deadline) {
+    const res = await supabase.functions.invoke("custom-agent", {
+      body: { action: "pollDiagnose", agentId: DIAGNOSTIC_AGENT_ID, threadId },
+    });
+    if (res.error) {
+      throw new Error(await invokeErrorDetail(res.error));
     }
-    throw new Error(detail);
+    const data = res.data as {
+      status?: string;
+      payload?: unknown;
+      message?: string;
+    } | null;
+    if (data?.status === "done") {
+      return {
+        id: `DGN-${Date.now()}`,
+        generatedAt: new Date().toISOString(),
+        employeeId,
+        payload: data.payload,
+      };
+    }
+    if (data?.status === "error") {
+      throw new Error(data.message ?? "Agent reported an error.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
 
-  if (
-    !data ||
-    typeof data !== "object" ||
-    !("payload" in data) ||
-    !("employeeId" in data)
-  ) {
-    throw new Error("Unexpected diagnostic response.");
-  }
-
-  return data as DiagnosticResult;
+  throw new Error("Agent did not respond in time. Please retry.");
 }
