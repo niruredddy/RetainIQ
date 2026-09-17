@@ -1,5 +1,5 @@
-import { Navigate } from "react-router-dom";
 import AppShell from "./components/app-shell";
+import Dashboard from "./pages/dashboard";
 import RiskRadar from "./pages/risk-radar";
 import DeepDive from "./pages/deep-dive";
 import MobilityMatcher from "./pages/mobility-matcher";
@@ -13,7 +13,8 @@ export const routers = [
     children: [
       {
         index: true,
-        element: <Navigate to="/risk-radar" replace />,
+        name: "dashboard",
+        element: <Dashboard />,
       },
       {
         path: "risk-radar",

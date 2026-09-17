@@ -20,7 +20,10 @@ export function TopHeader({
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  const current = NAV_ITEMS.find((item) => pathname.startsWith(item.path));
+  const current =
+    pathname === "/"
+      ? NAV_ITEMS[0]
+      : NAV_ITEMS.find((item) => item.path !== "/" && pathname.startsWith(item.path));
 
   return (
     <header className="glass sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 lg:px-6">
@@ -37,10 +40,14 @@ export function TopHeader({
       {/* Breadcrumb */}
       <div className="flex min-w-0 items-center gap-1.5 text-sm">
         <span className="text-muted-foreground">Dashboard</span>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
-        <span className="truncate font-medium text-foreground">
-          {current?.label ?? "Overview"}
-        </span>
+        {current && current.path !== "/" && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <span className="truncate font-medium text-foreground">
+              {current.label}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
