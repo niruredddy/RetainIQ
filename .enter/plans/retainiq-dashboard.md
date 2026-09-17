@@ -4,6 +4,8 @@
 
 The user wants a **frontend-only** enterprise dashboard UI ("RetainIQ") modeled after Vercel/Codex/Linear: high-density, data-forward, NOT a chatbot. All data and AI output will be **simulated locally with hardcoded demo data** (confirmed by user). No backend, no AI capability needed.
 
+**Future-proofing (user requirement):** the diagnostic is mock *for now*, but the user will later connect a real AI agent (Qwen) via the backend. The simulated diagnostic will therefore live behind a small async service (`src/lib/diagnostic.ts` exporting `runDiagnostic(employeeId) → Promise<DiagnosticResult>`) so the UI only consumes a promise — later it can be re-implemented as a backend-function call (Enter Cloud + AI capability) with zero UI changes. Same pattern for any orchestration action if needed.
+
 The template already ships everything needed: `framer-motion`, `recharts`, `lucide-react`, `next-themes`, and shadcn components (`button`, `badge`, `card`, `skeleton`, `avatar`, `dialog`, `command`, `dropdown-menu`, `tooltip`, `separator`).
 
 ## Architecture
@@ -36,6 +38,7 @@ Layout: fixed left sidebar (240px, collapsible to 64px) + 64px top header + cont
 - `src/pages/mobility-matcher.tsx` — 3 columns: Current Competencies (muted blue/gray tags), Target Requisition (card, animated count-up 78% "Alignment"), Skill Delta (missing skills with glowing blue borders). Bottom: "Upskilling Roadmap" horizontal 14-day timeline, 3 phases (Fundamentals / Advanced / Capstone) with connectors.
 - `src/pages/action-center.tsx` — centered (max-w-2xl). Summary card (employee, risk level, recommended action). Full-width gradient (blue→indigo, max 400px) "Execute EnterPro Workflow" button. Vertical 4-node timeline; on click nodes sequentially animate gray→emerald + Check icon (~600ms stagger via framer-motion).
 - `src/data/dashboard.ts` — all demo data: 8 employees (initials, avatar gradient, role, overtime, sentiment, riskScore, status), competencies, target role, skill delta, roadmap phases, workflow nodes, and the diagnostic JSON payload.
+- `src/lib/diagnostic.ts` — async `runDiagnostic(employeeId): Promise<DiagnosticResult>`; currently resolves the mock payload after ~1.8s simulated delay (used by the skeleton shimmer). Defines `DiagnosticResult` type. **Swap point for the future real Qwen backend call** — the Deep-Dive UI consumes only this promise.
 
 ### Modified files
 - `src/index.css` — RetainIQ design tokens + keyframes (below).
@@ -60,7 +63,8 @@ Layout: fixed left sidebar (240px, collapsible to 64px) + 64px top header + cont
 - [ ] `index.html`: add Inter + JetBrains Mono font links; default `class="dark"` on `<html>`.
 - [ ] `src/components/theme-provider.tsx` created; `src/App.tsx` wraps app in `ThemeProvider` and renders `SplashScreen` overlay.
 - [ ] `src/components/splash-screen.tsx`: typewriter logo, mono subtitle, 3-dot loader, 2.5s auto-transition with fade-out/slide-up exit.
-- [ ] `src/data/dashboard.ts`: all demo data exported (employees, risk statuses, competencies, delta, roadmap, workflow nodes, diagnostic JSON).
+- [ ] `src/data/dashboard.ts`: all demo data exported (employees, risk statuses, competencies, delta, roadmap, workflow nodes, diagnostic JSON payload).
+- [ ] `src/lib/diagnostic.ts`: `runDiagnostic()` async service returning `DiagnosticResult` promise (mock, ~1.8s delay); Deep-Dive UI consumes the promise only, so a future backend swap touches only this file.
 - [ ] `src/components/sidebar.tsx`: collapsible 240↔64px, logo + v1.0 badge, 4 nav items, blue left-border active state.
 - [ ] `src/components/top-header.tsx`: 64px breadcrumb, Cmd+K search trigger, theme toggle (Sun/Moon), bell + dot, avatar.
 - [ ] `src/components/command-palette.tsx`: ⌘K/Ctrl+K + `/` open Command dialog navigating to 4 screens.
