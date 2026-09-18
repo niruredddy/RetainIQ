@@ -186,6 +186,7 @@ export default function DeepDive() {
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   const json = useMemo(
     () => (result ? JSON.stringify(result.payload, null, 2) : ""),
@@ -197,8 +198,9 @@ export default function DeepDive() {
     setState("loading");
     setResult(null);
     setError(null);
+    setElapsed(0);
     try {
-      const res = await runDiagnostic(focusEmployee.id);
+      const res = await runDiagnostic(focusEmployee.id, setElapsed);
       setResult(res);
       setState("done");
     } catch (e) {
@@ -366,7 +368,7 @@ export default function DeepDive() {
             {state === "loading" ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Running diagnostic…
+                Running diagnostic… {elapsed}s
               </>
             ) : (
               <>

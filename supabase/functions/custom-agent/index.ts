@@ -253,7 +253,7 @@ async function startDiagnose(
 
   const prompt = buildPrompt(emp);
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
+  const timer = setTimeout(() => controller.abort(), 15_000);
   try {
     const upstream = await fetch(enterUrl(`/agents/${agentId}/run`), {
       method: "POST",
@@ -275,19 +275,27 @@ async function startDiagnose(
     }
     if (upstream.body) {
       const reader = upstream.body.getReader();
-      await reader.read().catch(() => undefined);
+      // Confirm the stream actually started before returning.
+      const first = await reader.read().catch(() => undefined);
+      if (!first || first.done) {
+        throw errorJson("AGENT_RUN_FAILED", "Agent run stream closed early.", 502);
+      }
       await reader.cancel().catch(() => undefined);
     }
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      // Timed out waiting for the stream — the run may still have started.
-    } else {
-      throw err;
+      throw errorJson(
+        "AGENT_RUN_START_TIMEOUT",
+        "Agent did not start within 15s. Please retry.",
+        504
+      );
     }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
 
+  console.log("diagnose started", threadId);
   return { threadId };
 }
 
@@ -302,11 +310,11 @@ async function pollDiagnose(agentId: string, threadId: string) {
   const thread = await threadRes.json().catch(() => ({}));
 
   if (thread?.running) {
-    return { status: "running" };
+    return { status: "running", turnStarted: true };
   }
   const latest = Number(thread?.latest_history_turn_id ?? 0);
   if (latest <= 0) {
-    return { status: "running" };
+    return { status: "running", turnStarted: false };
   }
 
   const turnsRes = await fetch(
@@ -329,9 +337,11 @@ async function pollDiagnose(agentId: string, threadId: string) {
     return { status: "running" };
   }
   if (turn.status === "error" || turn.status === "failed") {
+    console.log("diagnose error", threadId, "agent_error");
     return { status: "error", message: "Agent reported an error during the run." };
   }
   if (turn.status === "cancelled") {
+    console.log("diagnose error", threadId, "cancelled");
     return { status: "error", message: "Agent run was cancelled." };
   }
 
@@ -340,6 +350,7 @@ async function pollDiagnose(agentId: string, threadId: string) {
     raw_response: text,
     parse_status: "failed",
   };
+  console.log("diagnose done", threadId);
   return { status: "done", payload };
 }
 
