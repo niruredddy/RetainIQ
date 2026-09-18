@@ -21,6 +21,7 @@ export type Database = {
           id: string
           latest_history_turn_id: number
           running_turn_id: number | null
+          server_recorded: boolean
           thread_id: string
           title: string | null
           updated_at: string
@@ -33,6 +34,7 @@ export type Database = {
           id?: string
           latest_history_turn_id?: number
           running_turn_id?: number | null
+          server_recorded?: boolean
           thread_id: string
           title?: string | null
           updated_at?: string
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           latest_history_turn_id?: number
           running_turn_id?: number | null
+          server_recorded?: boolean
           thread_id?: string
           title?: string | null
           updated_at?: string
@@ -184,6 +187,95 @@ export type Database = {
         }
         Relationships: []
       }
+      retention_task_events: {
+        Row: {
+          created_at: string
+          evidence: string
+          id: string
+          recorded_by: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence: string
+          id?: string
+          recorded_by: string
+          status: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: string
+          id?: string
+          recorded_by?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_task_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "retention_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retention_tasks: {
+        Row: {
+          evidence: string | null
+          id: string
+          node_id: string
+          owner_label: string
+          position: number
+          recorded_at: string | null
+          recorded_by: string | null
+          status: string
+          title: string
+          workflow_id: string
+        }
+        Insert: {
+          evidence?: string | null
+          id?: string
+          node_id: string
+          owner_label: string
+          position: number
+          recorded_at?: string | null
+          recorded_by?: string | null
+          status?: string
+          title: string
+          workflow_id: string
+        }
+        Update: {
+          evidence?: string | null
+          id?: string
+          node_id?: string
+          owner_label?: string
+          position?: number
+          recorded_at?: string | null
+          recorded_by?: string | null
+          status?: string
+          title?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_tasks_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retention_tasks_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_nodes: {
         Row: {
           created_at: string
@@ -215,6 +307,7 @@ export type Database = {
           employee_id: string
           id: string
           status: string
+          tracking_mode: string
           updated_at: string
         }
         Insert: {
@@ -223,6 +316,7 @@ export type Database = {
           employee_id: string
           id?: string
           status?: string
+          tracking_mode?: string
           updated_at?: string
         }
         Update: {
@@ -231,6 +325,7 @@ export type Database = {
           employee_id?: string
           id?: string
           status?: string
+          tracking_mode?: string
           updated_at?: string
         }
         Relationships: [
@@ -248,7 +343,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      record_retention_task: {
+        Args: { p_completed: boolean; p_evidence: string; p_task_id: string }
+        Returns: undefined
+      }
+      start_retention_case: { Args: { p_employee_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

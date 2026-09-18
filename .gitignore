@@ -25,3 +25,6 @@ reports
 *.sw?
 code_template.zip
 retainiq-project.zip
+test-results/
+playwright-report/
+.enter/performance-audit/

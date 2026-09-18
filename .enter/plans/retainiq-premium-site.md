@@ -1,89 +1,91 @@
 # RetainIQ: distinctive 3D design and credible product behavior
 
 ## Context
-You want a professional, attractive workforce-retention product, with a signup background that is visibly different from the dashboard, and an experienced engineering review—not just cosmetic changes. The recommendation is to improve the existing product rather than add unrelated screens. No design can guarantee a competition win; credible evidence and reliable behavior matter as much as presentation.
+The approved direction is a professional workforce-retention app with a distinct, theme-related 3D signup experience, improved existing modules, and truthful operational behavior. Preserve existing employee records and the site's business purpose. No design or test suite guarantees a competition win or production readiness.
 
-Reviewed: authentication, dashboard, Risk Radar, Deep-Dive, Mobility Matcher, Action Center, navigation, search, notifications, realtime hooks, custom-agent proxy, database schema and relevant access policies. Visually inspected `/auth` at desktop 1280px and mobile 390px. Authenticated browser behavior has not yet been verified.
+Reviewed all existing routes and their principal controls: authentication, dashboard, Risk Radar, Deep-Dive, Mobility Matcher, Action Center, navigation/search/notifications, database policies, realtime subscriptions and the custom-agent proxy.
 
-### Most important findings
-- Signup currently uses the same ambient background as the app; it lacks a distinct visual story.
-- Authentication can remain in a submitting state after signup without a session. Password visibility/recovery and safe return-to-route handling are missing. The SOC 2 certification claim is not substantiated.
-- Risk Radar hardcodes workflow and record counts. Notifications have no click action; search advertises employee search but only searches pages. Sidebar navigation drops employee selection.
-- Deep-Dive can show the previous employee's diagnostic after selection changes. Failed AI calls produce fabricated output labeled cached AI; the proxy cancels its stream early and does not verify thread ownership before polling.
-- Action Center declares operational completion using timers, even when database writes fail. Duplicate prevention is not atomic.
-- Mobility Matcher can load forever when there is no plan and ignores stored roadmap phases in favor of hardcoded content/progress.
-- Database updates and genuine HR-system ingestion are different: existing seeded records are not evidence of connected HR telemetry. Current policies allow all signed-in users to read employee records and update workflows; this is not proven organization-level isolation.
-- Dashboard mounts two WebGL scenes. Router construction occurs inside render, and a timed splash unnecessarily blocks access.
-
-## Recommended design
-**Direction: Talent in Motion.** Retain the RetainIQ name, Sora/Manrope typography, blue identity, emerald growth accents, and light/dark themes.
-
-**Sign in / signup:** a premium split layout, with a sculptural 3D network of talent nodes and ascending career-path ribbons on the left and a stable, high-contrast form on the right. This is explicitly not another globe or random particle field. Use a concise workforce-growth headline and three explanatory labels: Understand signals, Find opportunities, Coordinate action—no invented metrics. Mobile keeps the form prominent and uses a compact dimensional illustration rather than hiding the requested visual entirely.
-
-**Dashboard and modules:** preserve the dashboard globe identity but use only one active scene. Add restrained layered surfaces, inset highlights, consistent status treatments and small hover lifts. Keep tables, charts and reading surfaces flat enough to scan. Avoid animated backgrounds behind dense data and avoid tilting input forms.
-
-Implement colors, elevations, focus styles and motion through semantic HSL tokens in `src/index.css` and `tailwind.config.ts`; reuse existing Card, Button, Input, Sheet/Dialog and EmployeeSelect components. Contrast must be tested, not assumed from palette names.
+## Design delivered
+**Talent in Motion:** a blue/emerald career-path sculpture with connected talent nodes, separate from the dashboard's globe. Desktop uses a split composition; mobile retains a compact dimensional visual above the form. Existing Sora/Manrope typography and light/dark themes remain. Cards, navigation, status treatments and forms share semantic HSL tokens. Dense data remains readable rather than continuously tilted or animated.
 
 ## Implementation checklist
-### 1. Visual foundation and authentication
-- [ ] Add a dedicated auth scene/component with career-path geometry, independent of the dashboard composition.
-- [ ] Provide an immediate CSS/SVG dimensional fallback; load decorative WebGL after the form is usable. Handle missing WebGL, context loss, resize and cleanup.
-- [ ] Cap rendering resolution, pause hidden/offscreen scenes, and respect reduced motion without removing essential content.
-- [ ] Recompose `src/pages/auth.tsx` into the split experience with visible field labels, password visibility, accessible errors, and a theme toggle.
-- [ ] Handle submission exceptions and email-confirmation success without endless loading; preserve safe same-app return destinations.
-- [ ] Add a real password-reset/request-and-update flow using existing authentication, with accurate confirmation/error states.
-- [ ] Remove unverified certification and zero-hallucination claims; use factual product copy instead.
-- [ ] Apply reusable surface/button/status recipes to the existing five app pages and themed 404 screen without changing their purpose.
+### Authentication and visual foundation
+- [x] Dedicated auth 3D career-path scene, with immediate SVG fallback and deferred WebGL.
+- [x] WebGL failure/context-loss handling, bounded rendering resolution, hidden/offscreen pause, cleanup and reduced-motion behavior for the auth scene.
+- [x] Rebuilt sign-in/signup forms with theme toggle, persistent labels, show/hide password, submission exception handling and confirmation messaging.
+- [x] Password reset request/update UI and safe return-to-route handling implemented; actual email delivery remains unverified below.
+- [x] Removed unsupported certification and zero-hallucination claims.
+- [x] Updated shared cards, sidebar/header, data modules and themed 404; removed duplicate dashboard WebGL background.
+- [x] Stable router and auth-context identity, visible route fallback, no forced timed splash.
 
-### 2. Navigation, data and usability
-- [ ] Preserve the selected employee across sidebar, module links and command navigation; show an explicit invalid-employee state instead of silently substituting someone else.
-- [ ] Add employee search using the existing `useEmployees` cache, plus Risk Radar name/role search and risk filtering.
-- [ ] Make the notification button open current critical signals with employee-specific links; do not invent unread notifications.
-- [ ] Replace the custom mobile drawer with the existing accessible dialog/sheet pattern; close on navigation and restore focus.
-- [ ] Replace hardcoded counts with database queries, keeping total workflow counts independent of the paginated execution list.
-- [ ] Expose loading, empty, error/retry and last-fetched states across modules; distinguish database connection status from HR-source freshness.
-- [ ] Subscribe to employee, workflow, mobility-plan and workflow-node changes with matching query invalidation and cleanup; show disconnected/reconnecting status honestly.
-- [ ] Fetch mobility plans only after employee resolution, render missing-plan states, and use stored roadmap phases/progress. Missing milestones remain unconfigured, not fabricated.
-- [ ] Normalize/deduplicate skills for transparent overlap calculations; describe alignment as skill overlap, not a guaranteed career outcome.
+### Navigation and data
+- [x] Employee selection carried across sidebar, command and module navigation; initial selection is pinned in the URL.
+- [x] Invalid employee codes show an explicit empty state instead of silently selecting another person.
+- [x] Command search includes employees/roles; Risk Radar supports name/role search and risk filters.
+- [x] Notifications open employee-specific critical signals instead of acting as a dead button.
+- [x] Accessible mobile navigation sheet closes on navigation and restores trigger focus.
+- [x] Removed static record/workflow counts. Active-case count uses an exact database count, independent of the 20-row history page.
+- [x] Loading/error/retry/empty states added across modules; stored employee and mobility JSON is validated before rendering.
+- [x] Employee, workflow, mobility-plan and workflow-node subscriptions updated, with connection status and cleanup. New task changes invalidate history and counts.
+- [x] Mobility queries wait for employee resolution; no-plan state is finite; saved roadmap phases/progress replace invented timelines.
+- [x] Skill overlap normalizes and deduplicates skills; zero requirements are not a fabricated match.
+- [x] Added a last-fetched timestamp to the shared data-status strip, distinguished from source freshness, with snapshot failure/loading states.
 
-### 3. Diagnostic and workflow credibility
-- [ ] Remove fabricated cached diagnostic generation. Keep bounded loading, cancellation and actionable failure/retry states; suppress stale results after employee changes.
-- [ ] Load the custom-agent integration guidance, repair ownership-checked thread/run handling and supported streaming/event parsing, and validate diagnostic payloads before presenting success.
-- [ ] Show a readable evidence/recommendation summary alongside optional raw JSON, employee identity and generation time. Label recommendations as requiring human review.
-- [ ] Attempt an authenticated end-to-end agent run. If the upstream serving endpoint remains blocked, report that blocker and keep the UI truthful—do not substitute simulated AI or switch providers silently.
-- [ ] Replace timer-driven execution with **human-reviewed retention case tracking**: explicit task updates with recorded actor, timestamp and evidence/note; external dispatch/enrollment stays “not connected.”
-- [ ] Make case creation idempotent on the server under concurrent requests. Inspect existing records first; preserve historical cases rather than deleting or silently resetting them.
-- [ ] Persist case/task transitions and show success only after confirmed writes; reject invalid/unauthorized changes and preserve state after refresh.
-- [ ] Derive case completion from recorded task state, distinguish human-recorded completion from external confirmation, and do not treat older timer-completed records as verified evidence.
+### Diagnostics and case tracking
+- [x] Removed fabricated cached AI results and false confidence/root-cause output.
+- [x] Added SDK-based AG-UI runtime, cancel/retry, bounded requests, employee-keyed panel lifecycle and strict output/employee validation.
+- [x] Replaced early stream cancellation with a lossless streaming proxy; added ownership checks for run/history/resume/cancel/tool-answer routes.
+- [x] Agent ownership mappings are server-recorded; users cannot forge a verified mapping. Existing mappings are retained but not implicitly trusted.
+- [x] Added structured observation/hypothesis/action/limitation presentation with optional JSON and real SDK activity.
+- [x] Attempted an authenticated live diagnostic. The serving host blocked the request; the UI reports this and generates no substitute result.
+- [ ] Obtain/verify a reachable serving API endpoint and demonstrate a successful authenticated Qwen run. Streaming success, question/tool interactions and malformed-response recovery remain unverified end to end while upstream is blocked.
+- [x] Replaced timer-driven completion with persisted human-reviewed cases and supporting evidence notes.
+- [x] Atomic case creation prevents duplicate manual cases for the same employee **within the requesting user's case ownership**. Historical records are preserved separately and marked unverified.
+- [x] Task updates record actor, time and evidence with append-only history. Server derives case completion; direct client completion writes are denied.
+- [x] Reopening tasks requires a note. Refresh restores recorded progress; repeated case creation does not reset tasks or add new task snapshots.
+- [x] UI explicitly distinguishes human-recorded actions from disconnected external dispatch/enrollment/HRIS integrations.
 
-### 4. Access safety and performance
-- [ ] Load Enter Cloud guidance before backend changes; inspect existing RetainIQ ownership and policy relationships. Preserve existing profiles, roles, records and unrelated tables.
-- [ ] Audit profile role-write permissions and workflow mutation authorization. Do not expose sensitive real employee data publicly or claim multi-organization isolation without implementing and testing it.
-- [ ] Keep router/provider instances stable; remove the forced timed splash and retain visible session-restoration states.
-- [ ] Keep `/auth` content in its initial dependency path, split noninitial app routes, and defer decorative Three.js without blanking critical content. Preserve editor, analytics and i18n contracts.
-- [ ] Update RetainIQ social metadata and enable production build-manifest evidence while preserving platform plugins.
+### Security, build and platform boundaries
+- [x] Inspected existing RetainIQ rows, schema and policies before compatible migrations; preserved profiles, role values, employee records and historical workflow records.
+- [x] New task/event tables have verified RLS and ownership-scoped reads; mutations run through authenticated server-side database functions.
+- [x] Fixed self-service profile-role escalation without changing existing users or roles.
+- [x] Preserved platform plugins, analytics/i18n contracts and generated client ownership; framework regenerated database types.
+- [x] Split noninitial module routes, updated social metadata, enabled production manifest and ran the strict route-classified bundle audit.
+- [ ] Reduce initial bundle cost and resolve performance audit warnings. Current default size budgets are exceeded; budgets were not raised to hide this.
 
-## Boundaries and external dependencies
-This work preserves the current route structure and business purpose. It does not add billing, a marketing-site rebuild, arbitrary HR integrations, or invented employee data.
+## Verification checklist and evidence
+- [x] `pnpm lint`.
+- [x] `pnpm exec tsc -p tsconfig.app.json --noEmit` and `pnpm exec tsc -p tsconfig.node.json --noEmit`.
+- [x] `pnpm run build` and `pnpm run build:prod`.
+- [x] `pnpm exec playwright test`: **6 passed** on the final tested source tree.
+- [x] Browser coverage: sign-in with a generated QA account, signup form/mode controls, password visibility, recovery entry, route protection, sign-out, employee navigation, search, invalid selection, saved mobility target, case creation, task evidence and refresh persistence.
+- [x] Database coverage: four concurrent case requests return the same case ID, direct completion denied, insufficient evidence rejected, self-role promotion denied, forged verified thread mapping denied.
+- [x] Realtime coverage: a separate authenticated database client updates a sample employee's QA task; the open browser receives the updated task state.
+- [x] Auth artwork visually inspected at `mobile_390` and `desktop_1280` (assumed target sizes). Mobile headline wrapping fixed. Both-theme key text contrast checks pass AA; reduced-motion/WebGL-unavailable form tests pass.
+- [x] Five cold-start `/auth` samples under mobile 390×844/DPR2, 4× CPU, 150ms RTT, 200KB/s download: LCP 2564–2616ms, median 2576ms; CLS 0 for all; two long tasks per sample. Local production evidence only, not deployed-user metrics.
+- [ ] Performance acceptance: LCP narrowly misses the suggested 2.5s target. No pre-change browser baseline exists, so improvement is unverified. Other routes and critical-interaction latency were not performance-profiled.
+- [ ] Complete remaining negative/boundary browser coverage: email delivery and confirmation-required signup, absent mobility plan/empty dataset, more than 20 cases, denied cross-user case access, delayed successful diagnostic switching/cancellation and full light/mobile app-route visual review.
+- [ ] Verify deployed HTTP/cache/compression behavior; no published production URL was available for that check.
 
-**Real workforce ingestion needs an authorized source and a confirmed access model.** Existing seeded rows must remain clearly identified as sample data until replaced through an approved import/integration. Choosing the source, organization membership rules and any HRIS/LMS/email service requires your input before connecting them. No secrets in frontend code.
+### Explicit quality status
+| Area | Status |
+|---|---|
+| Lint, type checks and both builds | Passed |
+| Six implemented regression tests | Passed; not exhaustive |
+| Strict static build-performance audit | Failed default size budget; dynamic/font warnings remain |
+| Browser performance | Measured auth only; LCP target missed, broader acceptance unverified |
+| Deployed HTTP verification | Unverified |
+| Live Qwen diagnostic | Blocked by upstream serving host |
+| Genuine HR telemetry / external actions | Not connected |
 
-**Human case tracking is not automated execution.** The proposed workflow is functional internal tracking; actual manager dispatch, course enrollment and HRIS updates require configured services and confirmation from those services. Production readiness remains conditional on real source access, security validation and a successful live AI run.
+The audit ran from an isolated ignored copy under `.enter/performance-audit/` because the mounted skill lacked parser dependencies. Platform-injected external font CSS remains in the build; platform plugins were preserved rather than removed. Auth is an application access screen, not a new marketing/SSG site.
 
-## Critical implementation paths
-- Design/auth: `src/pages/auth.tsx`, new focused components under `src/components/auth/`, `src/components/site/three-background.tsx`, `src/index.css`, `tailwind.config.ts`, `src/hooks/use-auth.tsx`.
-- Shell/navigation: `src/App.tsx`, `src/router.tsx`, `src/components/{app-shell,sidebar,top-header,command-palette}.tsx`, `src/hooks/use-employee-param.ts`.
-- Existing modules: `src/pages/{dashboard,risk-radar,deep-dive,mobility-matcher,action-center}.tsx`; reuse `useEmployees`, `useMobilityPlan`, `useWorkflows`, `useRealtimeInvalidate`, `EmployeeSelect` and `PageHeader`.
-- Diagnostics/backend: `src/lib/diagnostic.ts`, `supabase/functions/custom-agent/index.ts`, narrowly scoped RetainIQ migrations and workflow mutations after ownership review.
-- Build/metadata: `vite.config.ts`, `index.html`.
+## Remaining external decisions
+Existing data remains visibly identified as a sample workforce dataset. Genuine ingestion needs an authorized HR source and confirmed organization/access model. New signups currently share access to the sample employee dataset; multi-organization isolation is not implemented and must precede sensitive real employee ingestion. External manager communication, LMS enrollment and HRIS updates require separately chosen/configured services. Human case tracking does not perform those external actions.
 
-## Verification checklist
-- [ ] Validate auth sign-in/signup, confirmation-required signup, invalid credentials, recovery, restored sessions, safe return links and sign-out/cache clearing.
-- [ ] Check auth layout at `mobile_390` and `desktop_1280`, including create-account mode; verify light/dark, keyboard focus, reduced motion and WebGL fallback. Inspect only representative affected routes, not a screenshot sweep.
-- [ ] Follow Risk Radar → Deep-Dive → Mobility Matcher → Action Center with the same employee; test refresh, back navigation, no selection and an invalid employee code.
-- [ ] Test employee switching during a delayed diagnostic; verify late responses cannot replace the current employee's result. Test timeout, malformed output, cancellation and unauthorized thread access.
-- [ ] Test no employees, missing mobility plan, zero required skills, zero gaps, query failure and more than 20 workflows; no endless skeletons or false counts.
-- [ ] Test workflow double-click/concurrent creation, failed writes, unauthorized updates, refresh and task completion; no timer can produce completion.
-- [ ] Verify realtime updates using authorized test records without changing operational employee data; confirm reconnect status and no duplicated subscriptions.
-- [ ] Run `pnpm lint`, `pnpm exec tsc --noEmit`, relevant regression tests, `pnpm run build`, and `pnpm run build:prod`. Capture production manifest/bundle audit; the performance skill's audit reference was unavailable during planning and must be resolved or reported as a tooling blocker.
-- [ ] Report build audit, browser performance, functional regression and deployed HTTP verification separately as passed, failed, exempted or unverified. Screenshots/build success alone do not establish performance or end-to-end correctness.
+## Critical files
+- `src/components/auth/{auth-artwork,talent-scene}.tsx`, `src/pages/auth.tsx`, `src/index.css`, `tailwind.config.ts`.
+- `src/lib/auth-context.ts`, `src/hooks/use-auth.tsx`, `src/components/app-shell.tsx`, `src/router.tsx`.
+- Existing module pages and `src/hooks/{use-employees,use-employee-param,use-mobility-plan,use-realtime,use-workflows}.ts`.
+- `src/lib/diagnostic.ts`, `src/components/diagnostic-panel.tsx`, `supabase/functions/custom-agent/index.ts` (deployed version 9).
+- `src/components/retention-task.tsx`, compatible migrations under `supabase/migrations/`, `tests/*.spec.ts`, `playwright.config.ts`.

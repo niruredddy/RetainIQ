@@ -1,0 +1,3 @@
+ALTER TABLE public.agent_threads ADD COLUMN IF NOT EXISTS server_recorded boolean NOT NULL DEFAULT false;
+ALTER POLICY agent_threads_insert_own ON public.agent_threads WITH CHECK (auth.uid()=user_id AND server_recorded=false);
+ALTER POLICY agent_threads_update_own ON public.agent_threads USING (auth.uid()=user_id AND server_recorded=false) WITH CHECK (auth.uid()=user_id AND server_recorded=false);

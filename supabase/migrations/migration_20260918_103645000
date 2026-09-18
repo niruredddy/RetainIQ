@@ -1,0 +1,4 @@
+CREATE OR REPLACE FUNCTION public.prevent_profile_privilege_change() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN IF auth.uid() IS NOT NULL AND (NEW.role IS DISTINCT FROM OLD.role OR NEW.id IS DISTINCT FROM OLD.id) THEN RAISE EXCEPTION 'Account roles and identity cannot be changed from a user session'; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER profiles_guard_privileges BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.prevent_profile_privilege_change();
+CREATE INDEX IF NOT EXISTS retention_tasks_workflow_idx ON public.retention_tasks(workflow_id);
+CREATE INDEX IF NOT EXISTS retention_events_task_idx ON public.retention_task_events(task_id);

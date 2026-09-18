@@ -21,7 +21,7 @@ export function EmployeeSelect({
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn("w-56", className)}>
+      <SelectTrigger aria-label="Select employee" className={cn("w-56 max-w-full", className)}>
         <SelectValue placeholder="Select employee…" />
       </SelectTrigger>
       <SelectContent>
@@ -29,10 +29,7 @@ export function EmployeeSelect({
           <SelectItem key={emp.id} value={emp.employee_code}>
             <span className="flex items-center gap-2">
               <span
-                className={cn(
-                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[9px] font-semibold text-white",
-                  emp.gradient
-                )}
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-semibold text-primary"
               >
                 {emp.initials}
               </span>

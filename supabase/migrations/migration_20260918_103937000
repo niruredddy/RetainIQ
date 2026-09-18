@@ -1,0 +1,11 @@
+CREATE OR REPLACE FUNCTION public.start_retention_case(p_employee_id uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE case_id uuid;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.employees WHERE id=p_employee_id) THEN RAISE EXCEPTION 'Employee not found'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.workflow_nodes) THEN RAISE EXCEPTION 'No workflow tasks configured'; END IF;
+ INSERT INTO public.workflows(employee_id,created_by,status,tracking_mode) VALUES(p_employee_id,auth.uid(),'in_progress','manual') ON CONFLICT (employee_id,created_by) WHERE tracking_mode='manual' DO NOTHING RETURNING id INTO case_id;
+ IF case_id IS NULL THEN SELECT id INTO case_id FROM public.workflows WHERE employee_id=p_employee_id AND created_by=auth.uid() AND tracking_mode='manual'; RETURN case_id; END IF;
+ INSERT INTO public.retention_tasks(workflow_id,node_id,position,title,owner_label) SELECT case_id,id,position,title,owner FROM public.workflow_nodes;
+ RETURN case_id;
+END; $$;

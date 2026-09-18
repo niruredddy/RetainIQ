@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
     base: '/',
     build: {
       outDir: 'dist',
+      manifest: true,
     }
   };
 });

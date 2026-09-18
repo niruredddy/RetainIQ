@@ -1,66 +1,63 @@
 import AppShell from "./components/app-shell";
 import { AuthGuard } from "./components/auth-guard";
 import Dashboard from "./pages/dashboard";
-import RiskRadar from "./pages/risk-radar";
-import DeepDive from "./pages/deep-dive";
-import MobilityMatcher from "./pages/mobility-matcher";
-import ActionCenter from "./pages/action-center";
 import AuthPage from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
 export const routers = [
-  {
-    path: "/auth",
-    name: "auth",
-    element: <AuthPage />,
-  },
+  { path: "/auth", name: "auth", element: <AuthPage /> },
   {
     path: "/",
+    hydrateFallbackElement: (
+      <div
+        className="flex min-h-screen items-center justify-center bg-background text-foreground"
+        role="status"
+      >
+        Opening your workspace…
+      </div>
+    ),
     element: (
       <AuthGuard>
         <AppShell />
       </AuthGuard>
     ),
     children: [
-      {
-        index: true,
-        name: "dashboard",
-        element: <Dashboard />,
-      },
+      { index: true, name: "dashboard", element: <Dashboard /> },
       {
         path: "risk-radar",
         name: "risk-radar",
-        element: <RiskRadar />,
+        lazy: async () => ({
+          Component: (await import("./pages/risk-radar")).default,
+        }),
       },
       {
         path: "deep-dive",
         name: "deep-dive",
-        element: <DeepDive />,
+        lazy: async () => ({
+          Component: (await import("./pages/deep-dive")).default,
+        }),
       },
       {
         path: "mobility-matcher",
         name: "mobility-matcher",
-        element: <MobilityMatcher />,
+        lazy: async () => ({
+          Component: (await import("./pages/mobility-matcher")).default,
+        }),
       },
       {
         path: "action-center",
         name: "action-center",
-        element: <ActionCenter />,
+        lazy: async () => ({
+          Component: (await import("./pages/action-center")).default,
+        }),
       },
     ],
   },
-  /* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */
-  {
-    path: "*",
-    name: "404",
-    element: <NotFound />,
-  },
+  { path: "*", name: "404", element: <NotFound /> },
 ];
-
 declare global {
   interface Window {
     __routers__: typeof routers;
   }
 }
-
 window.__routers__ = routers;

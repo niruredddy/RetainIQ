@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 6% 10%;
 
-    --primary: 217 91% 60%;
+    --primary: 217 85% 43%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 5% 96%;
@@ -26,13 +25,13 @@
     --accent: 240 5% 95%;
     --accent-foreground: 240 6% 10%;
 
-    --destructive: 350 89% 60%;
+    --destructive: 350 75% 43%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 32 85% 33%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 160 84% 39%;
+    --success: 160 80% 27%;
     --success-foreground: 0 0% 100%;
 
     --border: 0 0% 0% / 0.08;
@@ -42,7 +41,21 @@
     --primary-glow: 217 91% 68%;
     --indigo: 243 75% 59%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+    --surface-raised: 0 0% 100%;
+    --scene-base: 222 48% 8%;
+    --scene-foreground: 215 40% 96%;
+    --scene-muted: 216 22% 72%;
+    --scene-blue: 215 92% 65%;
+    --scene-mint: 164 70% 62%;
+    --scene-line: 214 45% 24%;
+    --overlay: 222 40% 5%;
+    --shadow-surface:
+      0 2px 3px hsl(222 35% 10% / 0.02),
+      0 16px 40px -24px hsl(222 35% 10% / 0.18);
+    --shadow-raised:
+      0 1px 0 hsl(0 0% 100% / 0.7) inset,
+      0 20px 55px -24px hsl(217 70% 35% / 0.25);
   }
 
   .dark {
@@ -55,8 +68,8 @@
     --popover: 240 5% 7%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 217 90% 68%;
+    --primary-foreground: 222 48% 8%;
 
     --secondary: 240 4% 10%;
     --secondary-foreground: 0 0% 98%;
@@ -81,7 +94,14 @@
     --ring: 217 91% 60%;
 
     --primary-glow: 217 91% 70%;
-    --indigo: 243 75% 59%;
+    --indigo: 225 85% 66%;
+    --surface-raised: 222 20% 11%;
+    --shadow-surface:
+      0 1px 0 hsl(215 50% 80% / 0.035) inset,
+      0 12px 32px -18px hsl(222 60% 1% / 0.7);
+    --shadow-raised:
+      0 1px 0 hsl(215 50% 80% / 0.08) inset,
+      0 22px 60px -24px hsl(222 60% 1% / 0.8);
   }
 }
 
@@ -197,4 +217,358 @@ body,
 }
 *::-webkit-scrollbar-track {
   background: transparent;
+}
+
+@layer components {
+  .surface-card {
+    box-shadow: var(--shadow-surface);
+    background-image: linear-gradient(
+      145deg,
+      hsl(var(--surface-raised) / 0.6),
+      transparent 55%
+    );
+  }
+  .section-kicker {
+    @apply font-mono text-[10px] font-medium tracking-[0.2em] text-primary;
+  }
+  .auth-page {
+    @apply min-h-screen bg-background text-foreground;
+    padding: 0 40px;
+  }
+  .auth-header {
+    @apply mx-auto flex w-full items-center justify-between;
+    max-width: 1440px;
+    height: 92px;
+  }
+  .brand-lockup {
+    @apply flex items-center gap-3 font-display text-xl font-semibold tracking-tight;
+  }
+  .brand-lockup small {
+    @apply mt-0.5 block font-mono text-[8px] font-normal tracking-[0.19em] text-muted-foreground;
+  }
+  .brand-icon {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary;
+  }
+  .auth-layout {
+    @apply mx-auto grid w-full overflow-hidden rounded-3xl border border-border;
+    grid-template-columns: 1.08fr 1fr;
+    max-width: 1440px;
+    min-height: min(740px, calc(100svh - 158px));
+    box-shadow: var(--shadow-raised);
+  }
+  .auth-artwork {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 46px 44px 26px;
+    background:
+      radial-gradient(
+        ellipse at 68% 60%,
+        hsl(var(--scene-blue) / 0.13),
+        transparent 60%
+      ),
+      hsl(var(--scene-base));
+    color: hsl(var(--scene-foreground));
+  }
+  .auth-grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.35;
+    background-image:
+      linear-gradient(hsl(var(--scene-line) / 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--scene-line) / 0.45) 1px, transparent 1px);
+    background-size: 52px 52px;
+    mask-image: linear-gradient(transparent, black 60%);
+  }
+  .auth-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font:
+      9px "JetBrains Mono",
+      monospace;
+    letter-spacing: 0.15em;
+    color: hsl(var(--scene-muted));
+  }
+  .auth-eyebrow > span {
+    width: 5px;
+    height: 5px;
+    border-radius: 100%;
+    background: hsl(var(--scene-mint));
+    box-shadow: 0 0 12px hsl(var(--scene-mint) / 0.5);
+  }
+  .auth-headline {
+    font-family: Sora, sans-serif;
+    margin-top: 24px;
+    font-size: clamp(36px, 3.7vw, 57px);
+    line-height: 1.12;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+  }
+  .auth-headline > span {
+    color: hsl(var(--scene-mint));
+  }
+  .auth-story {
+    margin-top: 18px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: hsl(var(--scene-muted));
+  }
+  .talent-stage {
+    position: relative;
+    height: 310px;
+    margin: -48px -26px -8px;
+    pointer-events: none;
+  }
+  .talent-canvas {
+    position: absolute;
+    inset: -30px -30px -15px 60px;
+  }
+  .talent-canvas canvas {
+    width: 100%;
+    height: 100%;
+  }
+  .talent-fallback {
+    position: absolute;
+    right: -15px;
+    width: 85%;
+    height: 100%;
+    opacity: 0.75;
+  }
+  .talent-stage:has(.talent-canvas[data-ready="true"]) .talent-fallback {
+    opacity: 0;
+  }
+  .talent-label {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border: 1px solid hsl(var(--scene-line));
+    border-radius: 12px;
+    background: hsl(var(--scene-base) / 0.85);
+    box-shadow: 0 12px 30px -12px hsl(var(--overlay) / 0.7);
+    font-size: 11px;
+    backdrop-filter: blur(8px);
+  }
+  .talent-label small {
+    display: block;
+    font:
+      8px "JetBrains Mono",
+      monospace;
+    letter-spacing: 0.14em;
+    margin-bottom: 4px;
+    color: hsl(var(--scene-muted));
+  }
+  .talent-label-icon {
+    display: flex;
+    padding: 8px;
+    border-radius: 8px;
+    background: hsl(var(--scene-blue) / 0.12);
+    color: hsl(var(--scene-blue));
+  }
+  .talent-label-signal {
+    left: 22px;
+    top: 51%;
+    transform: rotate(-4deg);
+  }
+  .talent-label-growth {
+    right: 0;
+    top: 21%;
+    transform: rotate(4deg);
+  }
+  .talent-label-growth .talent-label-icon {
+    color: hsl(var(--scene-mint));
+    background: hsl(var(--scene-mint) / 0.1);
+  }
+  .talent-caption {
+    position: absolute;
+    bottom: 8px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font:
+      7px "JetBrains Mono",
+      monospace;
+    letter-spacing: 0.14em;
+    color: hsl(var(--scene-muted));
+  }
+  .talent-caption-line {
+    width: 24px;
+    height: 1px;
+    background: hsl(var(--scene-mint) / 0.5);
+  }
+  .auth-art-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 22px;
+    border-top: 1px solid hsl(var(--scene-line) / 0.7);
+    font-size: 11px;
+    line-height: 1.8;
+  }
+  .auth-art-footer svg,
+  .auth-art-footer span {
+    color: hsl(var(--scene-muted));
+  }
+  .auth-form-area {
+    @apply flex items-center justify-center bg-card;
+    padding: 48px 40px;
+  }
+  .auth-form-inner {
+    width: 100%;
+    max-width: 368px;
+  }
+  .auth-form-title {
+    @apply font-display font-semibold tracking-tight;
+    font-size: 29px;
+    line-height: 1.3;
+    margin-top: 13px;
+  }
+  .auth-tabs {
+    @apply mt-7 grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/60 p-1;
+  }
+  .auth-tabs button {
+    @apply rounded-lg px-2 py-2.5 text-xs font-medium text-muted-foreground transition-colors;
+  }
+  .auth-tabs button[aria-pressed="true"] {
+    @apply bg-card text-foreground;
+    box-shadow: var(--shadow-surface);
+  }
+  .auth-label {
+    @apply text-xs font-semibold text-foreground;
+  }
+  .auth-input {
+    @apply h-12 rounded-xl border-border bg-background/50 text-sm;
+  }
+  .auth-text-link {
+    @apply text-xs font-medium text-primary hover:underline;
+  }
+  .auth-submit {
+    @apply h-12 w-full justify-between rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground;
+    box-shadow:
+      0 5px 16px -7px hsl(var(--primary) / 0.5),
+      0 1px 0 hsl(var(--primary-foreground) / 0.15) inset;
+  }
+  .auth-form-foot {
+    @apply mt-6 flex items-center justify-center gap-2 text-[10px] text-muted-foreground;
+  }
+  .auth-principle {
+    @apply mt-9 flex items-center justify-center gap-3 text-[10px] text-muted-foreground;
+  }
+  .auth-principle-line {
+    @apply h-px flex-1 bg-border;
+  }
+  .auth-footer {
+    @apply mx-auto flex items-center justify-between py-5 text-[10px] text-muted-foreground;
+    max-width: 1440px;
+  }
+  .app-atmosphere {
+    background:
+      radial-gradient(
+        ellipse at 85% 0%,
+        hsl(var(--primary) / 0.06),
+        transparent 45%
+      ),
+      hsl(var(--background));
+  }
+  .data-note {
+    @apply flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-5 py-2 text-[10px] text-muted-foreground;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 4px;
+  }
+}
+@media (max-width: 1023px) {
+  .auth-page {
+    padding: 0 22px;
+  }
+  .auth-artwork {
+    padding: 35px 28px 24px;
+  }
+  .auth-form-area {
+    padding: 38px 28px;
+  }
+  .auth-headline {
+    font-size: 38px;
+  }
+  .talent-label-growth {
+    right: 5px;
+  }
+}
+@media (max-width: 767px) {
+  .auth-page {
+    padding: 0 16px;
+  }
+  .auth-header {
+    height: 76px;
+  }
+  .auth-layout {
+    grid-template-columns: 1fr;
+    border-radius: 20px;
+  }
+  .auth-artwork {
+    padding: 25px;
+    min-height: 215px;
+  }
+  .auth-headline {
+    font-size: 26px;
+    margin-top: 16px;
+    max-width: 225px;
+  }
+  .auth-headline br:nth-of-type(2) {
+    display: block;
+  }
+  .auth-story,
+  .auth-art-footer,
+  .talent-label,
+  .talent-caption {
+    display: none;
+  }
+  .auth-eyebrow {
+    font-size: 7px;
+  }
+  .talent-stage {
+    position: absolute;
+    inset: 15px -55px -20px 150px;
+    height: auto;
+    margin: 0;
+    opacity: 0.75;
+  }
+  .talent-canvas {
+    inset: -25px;
+  }
+  .talent-fallback {
+    width: 100%;
+  }
+  .auth-form-area {
+    padding: 30px 25px;
+  }
+  .auth-form-title {
+    font-size: 24px;
+  }
+  .auth-principle {
+    margin-top: 26px;
+  }
+  .auth-footer {
+    font-size: 9px;
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

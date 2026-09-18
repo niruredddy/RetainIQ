@@ -1,0 +1,43 @@
+ALTER TABLE public.workflows ADD COLUMN IF NOT EXISTS tracking_mode text NOT NULL DEFAULT 'legacy' CHECK (tracking_mode IN ('legacy','manual'));
+CREATE UNIQUE INDEX IF NOT EXISTS workflows_manual_employee_unique ON public.workflows (employee_id, created_by) WHERE tracking_mode = 'manual';
+CREATE TABLE public.retention_tasks (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), workflow_id uuid NOT NULL REFERENCES public.workflows(id), node_id uuid NOT NULL REFERENCES public.workflow_nodes(id), position integer NOT NULL, title text NOT NULL, owner_label text NOT NULL, status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed')), evidence text, recorded_by uuid, recorded_at timestamptz, UNIQUE(workflow_id,node_id)
+);
+ALTER TABLE public.retention_tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY retention_tasks_read_own ON public.retention_tasks FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.workflows w WHERE w.id=workflow_id AND w.created_by=auth.uid()));
+CREATE TABLE public.retention_task_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid NOT NULL REFERENCES public.retention_tasks(id), recorded_by uuid NOT NULL, status text NOT NULL CHECK (status IN ('pending','completed')), evidence text NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.retention_task_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY retention_events_read_own ON public.retention_task_events FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.retention_tasks t JOIN public.workflows w ON w.id=t.workflow_id WHERE t.id=task_id AND w.created_by=auth.uid()));
+CREATE OR REPLACE FUNCTION public.start_retention_case(p_employee_id uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE case_id uuid;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.employees WHERE id=p_employee_id) THEN RAISE EXCEPTION 'Employee not found'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.workflow_nodes) THEN RAISE EXCEPTION 'No workflow tasks configured'; END IF;
+ INSERT INTO public.workflows(employee_id,created_by,status,tracking_mode) VALUES(p_employee_id,auth.uid(),'in_progress','manual') ON CONFLICT (employee_id,created_by) WHERE tracking_mode='manual' DO UPDATE SET employee_id=EXCLUDED.employee_id RETURNING id INTO case_id;
+ INSERT INTO public.retention_tasks(workflow_id,node_id,position,title,owner_label) SELECT case_id,id,position,title,owner FROM public.workflow_nodes ON CONFLICT(workflow_id,node_id) DO NOTHING;
+ RETURN case_id;
+END; $$;
+CREATE OR REPLACE FUNCTION public.record_retention_task(p_task_id uuid,p_completed boolean,p_evidence text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE case_id uuid;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+ IF p_evidence IS NULL OR length(trim(p_evidence)) < 10 OR length(p_evidence)>2000 THEN RAISE EXCEPTION 'Provide an evidence note of 10 to 2000 characters'; END IF;
+ SELECT w.id INTO case_id FROM public.workflows w JOIN public.retention_tasks t ON t.workflow_id=w.id WHERE t.id=p_task_id AND w.created_by=auth.uid() AND w.tracking_mode='manual' FOR UPDATE OF w;
+ IF case_id IS NULL THEN RAISE EXCEPTION 'Case not found or access denied'; END IF;
+ UPDATE public.retention_tasks SET status=CASE WHEN p_completed THEN 'completed' ELSE 'pending' END,evidence=trim(p_evidence),recorded_by=auth.uid(),recorded_at=now() WHERE id=p_task_id;
+ INSERT INTO public.retention_task_events(task_id,recorded_by,status,evidence) VALUES(p_task_id,auth.uid(),CASE WHEN p_completed THEN 'completed' ELSE 'pending' END,trim(p_evidence));
+ UPDATE public.workflows SET status=CASE WHEN NOT EXISTS(SELECT 1 FROM public.retention_tasks WHERE workflow_id=case_id AND status<>'completed') THEN 'completed' ELSE 'in_progress' END,updated_at=now() WHERE id=case_id;
+END; $$;
+REVOKE ALL ON FUNCTION public.start_retention_case(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.record_retention_task(uuid,boolean,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.start_retention_case(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.record_retention_task(uuid,boolean,text) TO authenticated;
+GRANT SELECT ON public.retention_tasks,public.retention_task_events TO authenticated;
+DROP POLICY workflows_insert ON public.workflows;
+DROP POLICY workflows_update ON public.workflows;
+DROP POLICY workflows_select ON public.workflows;
+CREATE POLICY workflows_read ON public.workflows FOR SELECT TO authenticated USING (tracking_mode='legacy' OR created_by=auth.uid());
+ALTER PUBLICATION supabase_realtime ADD TABLE public.retention_tasks,public.workflow_nodes;
