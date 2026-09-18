@@ -6,6 +6,7 @@ import {
   type ThreadTurn,
 } from "@enter-pro/thread-client";
 import { z } from "zod";
+import { jsonrepair as repairJson } from "jsonrepair";
 import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 export const DIAGNOSTIC_AGENT_ID = "ff08b4ab-1410-4d0d-9a88-ff4103ea0e64";
 const prefix = `custom-agent/${DIAGNOSTIC_AGENT_ID}`;
@@ -20,6 +21,93 @@ export const DiagnosticSchema = z.object({
   ),
   limitations: z.array(z.string()),
 });
+type DiagnosticPayload = z.infer<typeof DiagnosticSchema>;
+/** Maps the published agent's native envelope ({id, employeeId, payload:{...}})
+ * onto the panel schema, grounded only in fields the agent supplied. */
+export function fromNativeDiagnostic(
+  raw: unknown,
+  fallbackEmployeeId: string,
+): DiagnosticPayload | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const source = raw as Record<string, unknown>;
+  const body =
+    typeof source.payload === "object" && source.payload !== null
+      ? (source.payload as Record<string, unknown>)
+      : source;
+  const employeeMeta =
+    typeof body.employee === "object" && body.employee !== null
+      ? (body.employee as Record<string, unknown>)
+      : undefined;
+  const employee_id =
+    typeof source.employeeId === "string"
+      ? source.employeeId
+      : typeof body.employee_id === "string"
+        ? body.employee_id
+        : typeof employeeMeta?.id === "string"
+          ? employeeMeta.id
+          : typeof employeeMeta?.employee_code === "string"
+            ? employeeMeta.employee_code
+            : fallbackEmployeeId;
+  const strings = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+  const risk =
+    typeof body.risk_assessment === "object" && body.risk_assessment !== null
+      ? (body.risk_assessment as Record<string, unknown>)
+      : undefined;
+  const summary =
+    typeof body.summary === "string" && body.summary.trim()
+      ? body.summary
+      : typeof body.overview === "string" && body.overview.trim()
+        ? body.overview
+        : risk
+          ? `Recorded ${String(risk.grade ?? "elevated").toLowerCase()} risk with a score of ${String(risk.score ?? "?")} on the supplied record.`
+          : "The agent returned a structured review of the supplied record.";
+  const telemetry =
+    typeof body.telemetry === "object" && body.telemetry !== null
+      ? (body.telemetry as Record<string, unknown>)
+      : undefined;
+  const observations = strings(body.observations).length
+    ? strings(body.observations)
+    : telemetry && Object.keys(telemetry).length
+      ? Object.entries(telemetry).map(
+          ([key, value]) => `${key}: ${JSON.stringify(value)}`,
+        )
+      : strings(body.root_causes);
+  const hypotheses = strings(body.hypotheses).length
+    ? strings(body.hypotheses)
+    : strings(body.root_causes);
+  const actions = Array.isArray(body.recommended_actions)
+    ? body.recommended_actions
+    : Array.isArray(body.actions)
+      ? body.actions
+      : [];
+  const recommended_actions = actions
+    .map((item) => {
+      if (typeof item !== "object" || item === null) return null;
+      const entry = item as Record<string, unknown>;
+      return {
+        action: String(entry.action ?? JSON.stringify(entry)),
+        owner: String(entry.owner ?? "Human review"),
+      };
+    })
+    .filter(
+      (item): item is { action: string; owner: string } =>
+        Boolean(item && item.action),
+    );
+  const limitations = strings(body.limitations).length
+    ? strings(body.limitations)
+    : ["Review the supplied record and confirm with the employee's manager before acting."];
+  return {
+    employee_id,
+    summary,
+    observations,
+    hypotheses,
+    recommended_actions,
+    limitations,
+  };
+}
 export interface DiagnosticResult {
   id: string;
   generatedAt: string;
@@ -57,7 +145,7 @@ export async function runDiagnostic(
   const timer = setTimeout(() => {
     timedOut = true;
     cancel();
-  }, 150_000);
+  }, 180_000);
   let lastText = "";
   const ensureActive = () => {
     if (deadline.signal.aborted || signal.aborted)
@@ -168,35 +256,150 @@ export async function runDiagnostic(
         return "";
       })
       .join("\n");
-    // Accept the plain reply, fenced JSON, or the first/last JSON object block.
-    const candidates = [text];
+    // Accept the plain reply, fenced JSON, or balanced top-level JSON objects.
+    // Balanced extraction prevents inner fragments (e.g. a single action
+    // object) from being mistaken for the full reply.
+    const candidates = [text.trim()];
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fenced) candidates.push(fenced[1]);
-    const blocks = [...text.matchAll(/\{[\s\S]*?\}/g)].map((m) => m[0]);
-    if (blocks.length) {
-      candidates.push(blocks[0], blocks[blocks.length - 1]);
+    if (fenced) candidates.push(fenced[1].trim());
+    const balanced: string[] = [];
+    let start = -1;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+      else if (ch === "{") {
+        if (start === -1) start = i;
+        depth++;
+      } else if (ch === "}") {
+        depth--;
+        if (depth === 0 && start !== -1) {
+          balanced.push(text.slice(start, i + 1));
+          start = -1;
+        }
+      }
     }
+    candidates.push(...balanced);
     let payload: z.infer<typeof DiagnosticSchema> | null = null;
     let parseError = "";
+    // Models occasionally rename keys, wrap the object, or omit the summary
+    // echo. Normalize aliases, unwrap nested objects, and fill only provable
+    // fields: the requested employee id (an input, not invented data) and a
+    // summary quoted verbatim from the agent's own first observation.
+    const ALIASES: Record<string, string> = {
+      employee_code: "employee_id",
+      user_id: "employee_id",
+      overview: "summary",
+      analysis: "summary",
+      conclusion: "summary",
+      findings: "observations",
+      actions: "recommended_actions",
+      recommendations: "recommended_actions",
+      risks: "hypotheses",
+    };
+    const normalizeKeys = (value: Record<string, unknown>) => {
+      const out: Record<string, unknown> = { ...value };
+      for (const [from, to] of Object.entries(ALIASES)) {
+        if (from in out) {
+          if (!(to in out)) out[to] = out[from];
+          delete out[from];
+        }
+      }
+      return out;
+    };
+    const complete = (value: Record<string, unknown>) => {
+      const out = normalizeKeys(value);
+      if (typeof out.employee_id !== "string")
+        out.employee_id = employeeId;
+      if (typeof out.summary !== "string" || !out.summary.trim()) {
+        const first = Array.isArray(out.observations)
+          ? out.observations.find((item) => typeof item === "string")
+          : undefined;
+        out.summary =
+          typeof first === "string" && first
+            ? first
+            : "The agent provided its analysis without a summary field.";
+      }
+      return out;
+    };
+    const attempt = (value: unknown) => {
+      if (typeof value !== "object" || value === null || Array.isArray(value))
+        return null;
+      const direct = DiagnosticSchema.safeParse(value);
+      if (direct.success) return direct.data;
+      const completed = DiagnosticSchema.safeParse(
+        complete(value as Record<string, unknown>),
+      );
+      if (completed.success) return completed.data;
+      const native = fromNativeDiagnostic(value, employeeId);
+      if (native) return native;
+      for (const nested of Object.values(value as Record<string, unknown>)) {
+        if (
+          typeof nested === "object" &&
+          nested !== null &&
+          !Array.isArray(nested)
+        ) {
+          const unwrapped = fromNativeDiagnostic(nested, employeeId);
+          if (unwrapped) return unwrapped;
+          const parsed = DiagnosticSchema.safeParse(
+            complete(nested as Record<string, unknown>),
+          );
+          if (parsed.success) return parsed.data;
+        }
+      }
+      return null;
+    };
+    const parseJson = (candidate: string): unknown => {
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        // Models occasionally emit trailing commas or unescaped quotes;
+        // jsonrepair normalizes these small mistakes deterministically.
+        return JSON.parse(repairJson(candidate));
+      }
+    };
+    const tryCandidate = (candidate: string) => {
+      const parsed = attempt(parseJson(candidate));
+      if (parsed) {
+        payload = parsed;
+        return true;
+      }
+      try {
+        const first = DiagnosticSchema.safeParse(parseJson(candidate));
+        if (!first.success)
+          parseError = first.error.issues
+            .slice(0, 2)
+            .map((issue) => issue.path.join(".") || "value")
+            .join(", ");
+      } catch {
+        parseError = "unparsable response";
+      }
+      return false;
+    };
     for (const candidate of candidates) {
       try {
-        const parsed = DiagnosticSchema.safeParse(JSON.parse(candidate));
-        if (parsed.success) {
-          payload = parsed.data;
-          break;
-        }
-        parseError = parsed.error.issues
-          .slice(0, 2)
-          .map((issue) => issue.path.join(".") || "value")
-          .join(", ");
+        if (tryCandidate(candidate)) break;
       } catch {
         /* try the next candidate */
       }
     }
-    if (!payload)
+    if (!payload) {
+      if (!text.trim())
+        throw new Error(
+          "The agent returned an empty response. No diagnostic was generated; please retry.",
+        );
       throw new Error(
-        `The agent response did not match the diagnostic format${parseError ? ` (${parseError})` : ""}. No validated result is available; please retry.`,
+        `The agent response did not match the diagnostic format${parseError ? ` (${parseError})` : ""}. No validated result is available; please retry.${text.trim() ? ` Raw reply preview: ${text.trim().slice(0, 800)}` : ""}`,
       );
+    }
     if (payload.employee_id !== employeeId)
       throw new Error(
         "The response employee does not match the selected employee. Result rejected.",

@@ -199,14 +199,13 @@ test("authenticated employee journey, real database cases and denied privilege e
   ).toBeVisible();
   await page.goto("/deep-dive?employee=EMP-0187");
   await page.getByRole("button", { name: "Run Qwen diagnostic" }).click();
-  await expect(
-    page
-      .getByText("Diagnostic not available", { exact: true })
-      .or(page.getByText("Recorded observations", { exact: true })),
-  ).toBeVisible({ timeout: 110_000 });
-  const failed = await page
+  const result = page
     .getByText("Diagnostic not available", { exact: true })
-    .isVisible();
+    .or(page.getByText("Recorded observations", { exact: true }));
+  await expect(result).toBeVisible({ timeout: 195_000 });
+  const failed = (await page
+    .getByText("Diagnostic not available", { exact: true })
+    .count()) > 0;
   console.log(
     `Authenticated live agent outcome: ${failed ? await page.getByRole("alert").innerText() : "validated diagnostic received"}`,
   );

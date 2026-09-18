@@ -86,7 +86,7 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
     );
     return () => clearInterval(timer);
   }, [busy]);
-  const run = async () => {
+  const run = async (autoRetry = true) => {
     if (busy) return;
     const request = new AbortController();
     controller.current = request;
@@ -104,8 +104,20 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
       );
       if (!request.signal.aborted) setResult(response);
     } catch (err) {
-      if (!request.signal.aborted)
-        setError(err instanceof Error ? err.message : "Diagnostic failed.");
+      if (!request.signal.aborted) {
+        const message =
+          err instanceof Error ? err.message : "Diagnostic failed.";
+        // The published agent occasionally returns an empty or malformed
+        // reply; a single automatic retry with a fresh thread resolves most
+        // of these without user involvement.
+        if (autoRetry && /did not match|empty response|time limit|timed out/.test(message)) {
+          setTimeout(() => {
+            if (!request.signal.aborted) void run(false);
+          }, 400);
+          return;
+        }
+        setError(message);
+      }
     } finally {
       if (!request.signal.aborted) setBusy(false);
     }
@@ -161,7 +173,7 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
             <AgentActivity turns={turns} />
             <p className="text-[10px] text-muted-foreground">
               No result is shown until a valid response is received. Maximum
-              wait: 150 seconds.
+              wait: 180 seconds.
             </p>
           </div>
         )}
