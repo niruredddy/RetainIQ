@@ -84,14 +84,19 @@ function SkeletonGrid() {
 }
 
 export default function MobilityMatcher() {
-  const { data: plan, isLoading, isError } = useMobilityPlan();
   const { data: employees } = useEmployees();
   const { employeeCode, setEmployee } = useEmployeeParam();
 
-  // ---- Live computation from real data ----
-  // Current competencies = the selected employee's actual skill matrix.
   const liveEmployee =
     employees?.find((e) => e.employee_code === employeeCode) ?? employees?.[0];
+  const { data: plan, isLoading, isError } = useMobilityPlan(
+    liveEmployee?.employee_code
+  );
+
+  // ---- Live computation from real data ----
+  // Current competencies = the selected employee's actual skill matrix.
+  // Match score and gaps are derived at runtime against that employee's own
+  // target role's required skills.
   const current = liveEmployee?.skill_matrix ?? [];
   const required = plan?.required_skills ?? [];
   const overlap = current.filter((skill) => required.includes(skill));

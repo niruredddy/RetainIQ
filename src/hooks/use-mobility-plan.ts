@@ -20,13 +20,17 @@ export interface MobilityPlan {
   roadmap_phases: RoadmapPhase[];
 }
 
-export function useMobilityPlan() {
+/** Fetches the mobility plan for a specific employee (their target role +
+ * required skills). Falls back to any plan when no employee is selected. */
+export function useMobilityPlan(employeeCode?: string | null) {
   return useQuery({
-    queryKey: ["mobility-plan"],
+    queryKey: ["mobility-plan", employeeCode ?? "default"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mobility_plan")
-        .select("*")
+      let query = supabase.from("mobility_plan").select("*");
+      if (employeeCode) {
+        query = query.eq("employee_code", employeeCode);
+      }
+      const { data, error } = await query
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
