@@ -204,7 +204,7 @@ export default function DeepDive() {
     setError(null);
     setElapsed(0);
     try {
-      const res = await runDiagnostic(focusEmployee.id, setElapsed);
+      const res = await runDiagnostic(focusEmployee.id, setElapsed, live);
       setResult(res);
       setState("done");
     } catch (e) {
