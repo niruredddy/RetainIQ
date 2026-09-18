@@ -1,6 +1,6 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+// RetainIQ custom-agent proxy.
+// Zero runtime dependencies: talks to Supabase REST + Enter Serving via fetch.
 
-// --- Configuration (server-side only) ---
 const ENTER_API_BASE_URL = (
   Deno.env.get("ENTER_API_BASE_URL") ?? "https://enter.converge.ai"
 ).replace(/\/+$/, "");
@@ -19,7 +19,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// The structured output contract the UI renders (Deep-Dive payload).
 const DIAGNOSTIC_SCHEMA = {
   diagnostic_id: "DGN-<generated>",
   model: "qwen-max-reasoning",
@@ -62,29 +61,6 @@ function errorJson(code: string, message: string, status: number) {
   return json({ error_code: code, message }, status);
 }
 
-async function authenticate(req: Request) {
-  const token =
-    req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!token) {
-    throw new Response(
-      JSON.stringify({ error_code: "UNAUTHORIZED", message: "Missing session token." }),
-      { status: 401, headers: corsHeaders }
-    );
-  }
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data, error } = await userClient.auth.getUser();
-  if (error || !data.user) {
-    throw new Response(
-      JSON.stringify({ error_code: "UNAUTHORIZED", message: "Invalid session token." }),
-      { status: 401, headers: corsHeaders }
-    );
-  }
-  return { user: data.user, userClient };
-}
-
 function requireKey() {
   if (!ENTER_API_KEY) {
     throw errorJson(
@@ -107,6 +83,63 @@ function enterHeaders() {
   };
 }
 
+// --- Supabase REST (respects RLS via the caller's JWT) ---
+
+function supabaseHeaders(token: string) {
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+}
+
+async function supabaseGetUser(token: string): Promise<{ id: string } | null> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: supabaseHeaders(token),
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as { id: string };
+}
+
+async function supabaseSelectEmployee(
+  token: string,
+  employeeCode: string
+): Promise<Record<string, unknown> | null> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/employees?employee_code=eq.${encodeURIComponent(employeeCode)}&select=*`,
+    { headers: supabaseHeaders(token) }
+  );
+  if (!res.ok) return null;
+  const rows = (await res.json()) as Record<string, unknown>[];
+  return rows[0] ?? null;
+}
+
+async function supabaseInsertThread(
+  token: string,
+  row: {
+    user_id: string;
+    agent_id: string;
+    thread_id: string;
+    version: number;
+    title: string | null;
+  }
+) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/agent_threads`, {
+    method: "POST",
+    headers: {
+      ...supabaseHeaders(token),
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) {
+    console.error("agent_threads insert failed", res.status);
+  }
+}
+
+// --- Agent helpers ---
+
 async function createThread(agentId: string) {
   const upstream = await fetch(enterUrl(`/agents/${agentId}/threads`), {
     method: "POST",
@@ -117,26 +150,6 @@ async function createThread(agentId: string) {
   return { status: upstream.status, body };
 }
 
-async function persistThread(
-  userId: string,
-  agentId: string,
-  thread: { thread_id?: string; version?: number; name?: string | null },
-  userClient: ReturnType<typeof createClient>
-) {
-  if (!thread.thread_id) return;
-  const { error } = await userClient.from("agent_threads").insert({
-    user_id: userId,
-    agent_id: agentId,
-    thread_id: String(thread.thread_id),
-    version: Number(thread.version ?? 1),
-    title: thread.name ?? null,
-  });
-  if (error) {
-    console.error("agent_threads insert failed", error.code ?? error.message);
-  }
-}
-
-/** Extract text from an array of stored AG-UI events. */
 function extractTextFromEvents(events: unknown[]): string {
   let lastText = "";
   for (const raw of events ?? []) {
@@ -214,22 +227,14 @@ function buildPrompt(emp: Record<string, unknown>): string {
   ].join("\n");
 }
 
-/**
- * Phase 1: create the thread, fire the run, and return immediately.
- * The turn keeps executing in Enter Serving even after we disconnect.
- */
 async function startDiagnose(
   agentId: string,
   userId: string,
-  userClient: ReturnType<typeof createClient>,
+  token: string,
   employeeId: string
 ) {
-  const { data: emp, error: empError } = await userClient
-    .from("employees")
-    .select("*")
-    .eq("employee_code", employeeId)
-    .maybeSingle();
-  if (empError || !emp) {
+  const emp = await supabaseSelectEmployee(token, employeeId);
+  if (!emp) {
     throw errorJson("EMPLOYEE_NOT_FOUND", "Employee not found.", 404);
   }
 
@@ -237,8 +242,14 @@ async function startDiagnose(
   if (thread.status >= 400) {
     throw errorJson("AGENT_THREAD_FAILED", "Failed to create agent thread.", 502);
   }
-  await persistThread(userId, agentId, thread.body, userClient);
   const threadId = String(thread.body.thread_id);
+  await supabaseInsertThread(token, {
+    user_id: userId,
+    agent_id: agentId,
+    thread_id: threadId,
+    version: Number(thread.body.version ?? 1),
+    title: thread.body.name ?? null,
+  });
 
   const prompt = buildPrompt(emp);
   const controller = new AbortController();
@@ -262,7 +273,6 @@ async function startDiagnose(
     if (!upstream.ok) {
       throw errorJson("AGENT_RUN_FAILED", "Agent run failed to start.", 502);
     }
-    // Confirm the stream started, then disconnect; the turn continues in Serving.
     if (upstream.body) {
       const reader = upstream.body.getReader();
       await reader.read().catch(() => undefined);
@@ -281,14 +291,7 @@ async function startDiagnose(
   return { threadId };
 }
 
-/**
- * Phase 2: short poll — returns instantly. Reports "running" until the turn
- * is terminal, then extracts the assistant JSON payload.
- */
-async function pollDiagnose(
-  agentId: string,
-  threadId: string
-) {
+async function pollDiagnose(agentId: string, threadId: string) {
   const threadRes = await fetch(
     enterUrl(`/agents/${agentId}/threads/${threadId}`),
     { headers: enterHeaders() }
@@ -307,7 +310,9 @@ async function pollDiagnose(
   }
 
   const turnsRes = await fetch(
-    enterUrl(`/agents/${agentId}/threads/${threadId}/turns?start_turn=${latest}&end_turn=${latest}`),
+    enterUrl(
+      `/agents/${agentId}/threads/${threadId}/turns?start_turn=${latest}&end_turn=${latest}`
+    ),
     { headers: enterHeaders() }
   );
   if (!turnsRes.ok) {
@@ -347,7 +352,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { user, userClient } = await authenticate(req);
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    if (!token) {
+      return errorJson("UNAUTHORIZED", "Missing session token.", 401);
+    }
+    const user = await supabaseGetUser(token);
+    if (!user) {
+      return errorJson("UNAUTHORIZED", "Invalid session token.", 401);
+    }
+
     const body = await req.json().catch(() => ({}));
     const agentId = String(
       body.agentId ?? "ff08b4ab-1410-4d0d-9a88-ff4103ea0e64"
@@ -362,7 +375,7 @@ Deno.serve(async (req) => {
       if (!employeeId) {
         return errorJson("BAD_REQUEST", "employeeId is required.", 400);
       }
-      return json(await startDiagnose(agentId, user.id, userClient, employeeId));
+      return json(await startDiagnose(agentId, user.id, token, employeeId));
     }
 
     if (action === "pollDiagnose") {
@@ -371,13 +384,6 @@ Deno.serve(async (req) => {
         return errorJson("BAD_REQUEST", "threadId is required.", 400);
       }
       return json(await pollDiagnose(agentId, threadId));
-    }
-
-    if (action === "createThread") {
-      const thread = await createThread(agentId);
-      if (thread.status >= 400) return json(thread.body, thread.status);
-      await persistThread(user.id, agentId, thread.body, userClient);
-      return json(thread.body, thread.status);
     }
 
     return errorJson("BAD_REQUEST", "Unknown action.", 400);

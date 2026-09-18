@@ -271,7 +271,7 @@ export default function DeepDive() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
             {/* Attendance */}
             <Card className="border-border">
               <CardContent className="p-5">
@@ -281,8 +281,8 @@ export default function DeepDive() {
                 <p className="mb-3 mt-1 font-mono text-[11px] text-destructive">
                   {spikeLabel}
                 </p>
-                <div className="h-24">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-24 min-w-0">
+                  <ResponsiveContainer width="100%" height={96}>
                     <AreaChart data={attendance} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="attendFill" x1="0" y1="0" x2="0" y2="1">

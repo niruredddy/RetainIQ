@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, ArrowUpRight, GitBranch, Radar, ScanSearch, Users, Workflow, Zap } from "lucide-react";
 import { RiskBadge } from "@/components/risk-badge";
 import { useEmployees } from "@/hooks/use-employees";
+import { useAuth } from "@/hooks/use-auth";
 import { activeWorkflowCount, useWorkflows } from "@/hooks/use-workflows";
 import { cn } from "@/lib/utils";
 const ThreeBackground = lazy(() => import("@/components/site/three-background"));
@@ -63,6 +64,13 @@ const STAT_CONFIG = [{
   valueClass: "text-success"
 }];
 export default function Dashboard() {
+  const { user } = useAuth();
+  const displayName =
+    ((user?.user_metadata?.full_name as string | undefined)?.trim() ||
+      user?.email?.split("@")[0] ||
+      "there");
+  const firstName = displayName.split(/\s+/)[0] ?? "there";
+
   const {
     data: employees,
     isLoading,
@@ -93,7 +101,7 @@ export default function Dashboard() {
           </motion.div>
 
           <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="show" className="mt-6 max-w-2xl font-display text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl">
-            Good morning, Niru.
+            Good morning, {firstName}.
             <br />
             <span className="gradient-text">Your workforce is under control.</span>
           </motion.h1>
