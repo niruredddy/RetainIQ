@@ -23,20 +23,35 @@ export function useWorkflowNodes() {
   });
 }
 
+export interface WorkflowRow {
+  id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  employee_id: string;
+  employees: { employee_code: string; name: string } | null;
+}
+
 export function useWorkflows() {
   return useQuery({
     queryKey: ["workflows"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("workflows").select("id, status");
+      const { data, error } = await supabase
+        .from("workflows")
+        .select(
+          "id, status, created_at, updated_at, employee_id, employees(employee_code, name)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(20);
       if (error) throw error;
-      return (data ?? []) as { id: string; status: string }[];
+      return (data ?? []) as unknown as WorkflowRow[];
     },
     staleTime: 15_000,
   });
 }
 
-export function activeWorkflowCount(workflows: { status: string }[] | undefined) {
-  return workflows?.filter((w) => w.status !== "completed").length ?? 0;
+export function activeWorkflowCount(rows: WorkflowRow[] | undefined) {
+  return rows?.filter((w) => w.status !== "completed").length ?? 0;
 }
 
 export async function startWorkflow(employeeId: string) {

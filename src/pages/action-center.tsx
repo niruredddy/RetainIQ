@@ -14,6 +14,7 @@ import {
   startWorkflow,
   useInvalidateWorkflows,
   useWorkflowNodes,
+  useWorkflows,
 } from "@/hooks/use-workflows";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export default function ActionCenter() {
   const { data: employees } = useEmployees();
   const { employeeCode, setEmployee } = useEmployeeParam();
   const { data: nodes } = useWorkflowNodes();
+  const { data: workflows } = useWorkflows();
   const invalidateWorkflows = useInvalidateWorkflows();
   const focusEmployee =
     employees?.find((e) => e.employee_code === employeeCode) ?? employees?.[0] ?? null;
@@ -255,6 +257,76 @@ export default function ActionCenter() {
             </div>
             )}
           </CardContent>
+        </Card>
+
+        {/* Recent executions — the provable output of every click */}
+        <Card className="mt-4 border-border">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Recent Executions
+              </h2>
+              <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                LIVE FROM DATABASE · {workflows?.length ?? 0} RECORDS
+              </p>
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-success">
+              ● REALTIME
+            </span>
+          </div>
+
+          {!workflows || workflows.length === 0 ? (
+            <CardContent className="p-8 text-center">
+              <p className="font-mono text-xs tracking-widest text-muted-foreground">
+                NO EXECUTIONS YET — RUN A WORKFLOW ABOVE
+              </p>
+            </CardContent>
+          ) : (
+            <div className="divide-y divide-border">
+              {workflows.slice(0, 6).map((wf) => (
+                <div
+                  key={wf.id}
+                  className="grid grid-cols-[minmax(0,1.6fr)_0.8fr_1fr] items-center gap-3 px-5 py-3 transition-colors duration-200 hover:bg-accent/40"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {wf.employees?.name ?? "Unknown employee"}
+                    </p>
+                    <p className="truncate font-mono text-[10px] text-muted-foreground">
+                      CASE #{(wf.employees?.employee_code ?? "0000").replace("EMP-", "R-")}
+                    </p>
+                  </div>
+                  <div>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px]",
+                        wf.status === "completed"
+                          ? "border-success/25 bg-success/10 text-success"
+                          : wf.status === "in_progress"
+                            ? "border-warning/25 bg-warning/10 text-warning animate-pulse"
+                            : "border-border text-muted-foreground"
+                      )}
+                    >
+                      {wf.status === "completed" ? "✓ Completed" : wf.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {new Date(wf.created_at).toLocaleString([], {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                    <p className="font-mono text-[9px] text-muted-foreground/70">
+                      WF-{wf.id.slice(0, 8)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </>
