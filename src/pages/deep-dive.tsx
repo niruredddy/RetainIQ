@@ -390,6 +390,14 @@ export default function DeepDive() {
                 zero-hallucination · structured
               </p>
             </div>
+            {state === "done" &&
+              result &&
+              (result.payload as { source?: string })?.source ===
+                "cached_analysis" && (
+                <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 font-mono text-[9px] text-warning">
+                  CACHED ANALYSIS — AGENT UNREACHABLE
+                </span>
+              )}
             {state === "done" && (
               <Button variant="outline" size="sm" onClick={copy}>
                 {copied ? (
