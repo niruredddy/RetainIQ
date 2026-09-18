@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { RiskBadge } from "@/components/risk-badge";
+import { EmployeeSelect } from "@/components/employee-select";
 import { useEmployees } from "@/hooks/use-employees";
+import { useEmployeeParam } from "@/hooks/use-employee-param";
 import {
   completeWorkflow,
   startWorkflow,
@@ -17,9 +19,11 @@ import { cn } from "@/lib/utils";
 
 export default function ActionCenter() {
   const { data: employees } = useEmployees();
+  const { employeeCode, setEmployee } = useEmployeeParam();
   const { data: nodes } = useWorkflowNodes();
   const invalidateWorkflows = useInvalidateWorkflows();
-  const focusEmployee = employees?.[0] ?? null;
+  const focusEmployee =
+    employees?.find((e) => e.employee_code === employeeCode) ?? employees?.[0] ?? null;
   const workflowNodes = nodes ?? [];
 
   const [completed, setCompleted] = useState<number[]>([]);
@@ -74,9 +78,14 @@ export default function ActionCenter() {
             <h2 className="text-sm font-semibold text-foreground">
               Retention Execution Summary
             </h2>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Case #{(focusEmployee?.employee_code ?? "0000").replace("EMP-", "R-")}
-            </span>
+            <div className="flex items-center gap-3">
+              {focusEmployee && (
+                <EmployeeSelect value={focusEmployee.employee_code} onChange={setEmployee} />
+              )}
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Case #{(focusEmployee?.employee_code ?? "0000").replace("EMP-", "R-")}
+              </span>
+            </div>
           </div>
           <CardContent className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
             {focusEmployee ? (

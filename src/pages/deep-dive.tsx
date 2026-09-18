@@ -22,6 +22,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { RiskBadge } from "@/components/risk-badge";
 import { useEmployees } from "@/hooks/use-employees";
+import { useEmployeeParam } from "@/hooks/use-employee-param";
+import { EmployeeSelect } from "@/components/employee-select";
 import { runDiagnostic, type DiagnosticResult } from "@/lib/diagnostic";
 import { cn } from "@/lib/utils";
 
@@ -150,7 +152,9 @@ type PanelState = "idle" | "loading" | "done" | "error";
 
 export default function DeepDive() {
   const { data: employees, isLoading } = useEmployees();
-  const live = employees?.[0];
+  const { employeeCode, setEmployee } = useEmployeeParam();
+  const live =
+    employees?.find((e) => e.employee_code === employeeCode) ?? employees?.[0];
   const focusEmployee = live
     ? {
         id: live.employee_code,
@@ -254,11 +258,17 @@ export default function DeepDive() {
                       {focusEmployee.role}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 font-mono text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" /> TENURE {focusEmployee.tenure}
-                    </span>
-                    <span>ID {focusEmployee.id}</span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <EmployeeSelect
+                      value={focusEmployee.id}
+                      onChange={setEmployee}
+                    />
+                    <div className="flex items-center gap-4 font-mono text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" /> TENURE {focusEmployee.tenure}
+                      </span>
+                      <span>ID {focusEmployee.id}</span>
+                    </div>
                   </div>
                 </>
               ) : (

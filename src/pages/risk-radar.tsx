@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, Users, Workflow } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -174,13 +175,14 @@ export default function RiskRadar() {
             </div>
           )}
 
-          {!isLoading &&
-            !isError &&
-            (employees ?? []).map((emp) => (
-              <div
-                key={emp.id}
-                className="grid grid-cols-[minmax(0,2.2fr)_0.7fr_0.8fr_0.8fr_1fr] items-center gap-4 rounded-lg border border-transparent px-5 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-soft max-md:grid-cols-[minmax(0,1.5fr)_0.7fr_1fr]"
-              >
+            {!isLoading &&
+              !isError &&
+              (employees ?? []).map((emp) => (
+                <Link
+                  to={`/deep-dive?employee=${emp.employee_code}`}
+                  key={emp.id}
+                  className="grid grid-cols-[minmax(0,2.2fr)_0.7fr_0.8fr_0.8fr_1fr] items-center gap-4 rounded-lg border border-transparent px-5 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/40 hover:shadow-soft max-md:grid-cols-[minmax(0,1.5fr)_0.7fr_1fr]"
+                >
                 {/* Employee */}
                 <div className="flex min-w-0 items-center gap-3">
                   <Avatar className="h-9 w-9 shrink-0 ring-1 ring-border">
@@ -232,8 +234,8 @@ export default function RiskRadar() {
 
                 {/* Status */}
                 <StatusCell status={emp.status} />
-              </div>
-            ))}
+                </Link>
+              ))}
         </div>
       </Card>
     </>

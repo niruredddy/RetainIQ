@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-shell";
 import { useMobilityPlan } from "@/hooks/use-mobility-plan";
 import { useEmployees } from "@/hooks/use-employees";
+import { useEmployeeParam } from "@/hooks/use-employee-param";
+import { EmployeeSelect } from "@/components/employee-select";
 import { cn } from "@/lib/utils";
 
 function useCountUp(target: number, duration = 1200, delay = 250) {
@@ -84,11 +86,12 @@ function SkeletonGrid() {
 export default function MobilityMatcher() {
   const { data: plan, isLoading, isError } = useMobilityPlan();
   const { data: employees } = useEmployees();
+  const { employeeCode, setEmployee } = useEmployeeParam();
 
   // ---- Live computation from real data ----
-  // Current competencies = the employee's actual skill matrix (employees table).
-  // Match score and gaps are derived at runtime: required (target role) vs current.
-  const liveEmployee = employees?.[0];
+  // Current competencies = the selected employee's actual skill matrix.
+  const liveEmployee =
+    employees?.find((e) => e.employee_code === employeeCode) ?? employees?.[0];
   const current = liveEmployee?.skill_matrix ?? [];
   const required = plan?.required_skills ?? [];
   const overlap = current.filter((skill) => required.includes(skill));
@@ -137,6 +140,11 @@ export default function MobilityMatcher() {
       <PageHeader
         title="Mobility Matcher"
         description="Dynamic skill-graph gap matching against open internal requisitions."
+        right={
+          liveEmployee ? (
+            <EmployeeSelect value={liveEmployee.employee_code} onChange={setEmployee} />
+          ) : undefined
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

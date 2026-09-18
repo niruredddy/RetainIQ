@@ -208,7 +208,7 @@ export default function Dashboard() {
             </div>}
 
           {!isLoading && !isError && topSignals.map((emp, i) => <motion.div key={emp.id} variants={fadeUp} custom={8 + i} initial="hidden" animate="show">
-                <Link to="/deep-dive" className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-destructive/40 hover:shadow-soft">
+                 <Link to={`/deep-dive?employee=${emp.employee_code}`} className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-destructive/40 hover:shadow-soft">
                   <div className="flex items-center gap-3">
                     <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white", emp.gradient)}>
                       {emp.initials}

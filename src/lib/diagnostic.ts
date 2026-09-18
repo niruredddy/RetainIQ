@@ -12,7 +12,7 @@ export interface DiagnosticResult {
 export const DIAGNOSTIC_AGENT_ID = "ff08b4ab-1410-4d0d-9a88-ff4103ea0e64";
 
 const POLL_INTERVAL_MS = 2500;
-const REAL_ATTEMPT_BUDGET_MS = 25_000;
+const REAL_ATTEMPT_BUDGET_MS = 10_000;
 
 async function invokeErrorDetail(error: unknown): Promise<string> {
   let detail = (error as Error | null)?.message ?? "Diagnostic failed.";
@@ -100,7 +100,7 @@ export async function runDiagnostic(
     return await runRealAgent(employeeId, onProgress);
   } catch {
     // Agent unreachable from this environment — labeled cached fallback.
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 600));
     return {
       id: `DGN-${Date.now()}`,
       generatedAt: new Date().toISOString(),
