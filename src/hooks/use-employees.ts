@@ -1,4 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
+<<<<<<< HEAD
+import { supabase } from "@/integrations/supabase/client";
+
+export type EmployeeStatus = "Monitor" | "Intervene" | "Escalate";
+
+export interface EmployeeRecord {
+  id: string;
+  employee_code: string;
+  name: string;
+  role: string;
+  initials: string;
+  gradient: string;
+  tenure: string;
+  overtime_spike: number;
+  sentiment_drop: number;
+  risk_score: number;
+  status: EmployeeStatus;
+}
+
+export function useEmployees() {
+  return useQuery({
+    queryKey: ["employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .order("risk_score", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as EmployeeRecord[];
+=======
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,6 +66,7 @@ export function useEmployees() {
         .abortSignal(signal);
       if (error) throw error;
       return z.array(EmployeeSchema).parse(data ?? []);
+>>>>>>> origin/enter-main
     },
     staleTime: 30_000,
   });

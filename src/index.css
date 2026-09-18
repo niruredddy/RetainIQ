@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/enter-main
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +17,11 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 6% 10%;
 
+<<<<<<< HEAD
+    --primary: 217 91% 60%;
+=======
     --primary: 217 85% 43%;
+>>>>>>> origin/enter-main
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 5% 96%;
@@ -25,6 +33,15 @@
     --accent: 240 5% 95%;
     --accent-foreground: 240 6% 10%;
 
+<<<<<<< HEAD
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%;
+=======
     --destructive: 350 75% 43%;
     --destructive-foreground: 0 0% 100%;
 
@@ -32,6 +49,7 @@
     --warning-foreground: 0 0% 100%;
 
     --success: 160 80% 27%;
+>>>>>>> origin/enter-main
     --success-foreground: 0 0% 100%;
 
     --border: 0 0% 0% / 0.08;
@@ -41,6 +59,9 @@
     --primary-glow: 217 91% 68%;
     --indigo: 243 75% 59%;
 
+<<<<<<< HEAD
+    --radius: 0.5rem;
+=======
     --radius: 0.75rem;
     --surface-raised: 0 0% 100%;
     --scene-base: 222 48% 8%;
@@ -56,6 +77,7 @@
     --shadow-raised:
       0 1px 0 hsl(0 0% 100% / 0.7) inset,
       0 20px 55px -24px hsl(217 70% 35% / 0.25);
+>>>>>>> origin/enter-main
   }
 
   .dark {
@@ -68,8 +90,13 @@
     --popover: 240 5% 7%;
     --popover-foreground: 0 0% 98%;
 
+<<<<<<< HEAD
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+=======
     --primary: 217 90% 68%;
     --primary-foreground: 222 48% 8%;
+>>>>>>> origin/enter-main
 
     --secondary: 240 4% 10%;
     --secondary-foreground: 0 0% 98%;
@@ -94,6 +121,9 @@
     --ring: 217 91% 60%;
 
     --primary-glow: 217 91% 70%;
+<<<<<<< HEAD
+    --indigo: 243 75% 59%;
+=======
     --indigo: 225 85% 66%;
     --surface-raised: 222 20% 11%;
     --shadow-surface:
@@ -102,6 +132,7 @@
     --shadow-raised:
       0 1px 0 hsl(215 50% 80% / 0.08) inset,
       0 22px 60px -24px hsl(222 60% 1% / 0.8);
+>>>>>>> origin/enter-main
   }
 }
 
@@ -195,6 +226,8 @@
   }
 }
 
+<<<<<<< HEAD
+=======
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -217,6 +250,7 @@
   }
 }
 
+>>>>>>> origin/enter-main
 html,
 body,
 #root {
@@ -240,6 +274,8 @@ body,
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+<<<<<<< HEAD
+=======
 
 @layer components {
   .surface-card {
@@ -600,3 +636,4 @@ body,
     transition-duration: 0.01ms !important;
   }
 }
+>>>>>>> origin/enter-main

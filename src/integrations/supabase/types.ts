@@ -14,6 +14,10 @@ export type Database = {
   }
   public: {
     Tables: {
+<<<<<<< HEAD
+      employees: {
+        Row: {
+=======
       agent_threads: {
         Row: {
           agent_id: string
@@ -59,6 +63,7 @@ export type Database = {
       employees: {
         Row: {
           attendance_pattern: Json
+>>>>>>> origin/enter-main
           created_at: string
           employee_code: string
           gradient: string
@@ -66,18 +71,27 @@ export type Database = {
           initials: string
           name: string
           overtime_spike: number
+<<<<<<< HEAD
+          risk_score: number
+          role: string
+          sentiment_drop: number
+=======
           peer_sentiment: number
           peer_sentiment_baseline: number
           risk_score: number
           role: string
           sentiment_drop: number
           skill_matrix: Json
+>>>>>>> origin/enter-main
           status: string
           tenure: string
           updated_at: string
         }
         Insert: {
+<<<<<<< HEAD
+=======
           attendance_pattern?: Json
+>>>>>>> origin/enter-main
           created_at?: string
           employee_code: string
           gradient: string
@@ -85,18 +99,27 @@ export type Database = {
           initials: string
           name: string
           overtime_spike?: number
+<<<<<<< HEAD
+          risk_score?: number
+          role: string
+          sentiment_drop?: number
+=======
           peer_sentiment?: number
           peer_sentiment_baseline?: number
           risk_score?: number
           role: string
           sentiment_drop?: number
           skill_matrix?: Json
+>>>>>>> origin/enter-main
           status?: string
           tenure: string
           updated_at?: string
         }
         Update: {
+<<<<<<< HEAD
+=======
           attendance_pattern?: Json
+>>>>>>> origin/enter-main
           created_at?: string
           employee_code?: string
           gradient?: string
@@ -104,18 +127,26 @@ export type Database = {
           initials?: string
           name?: string
           overtime_spike?: number
+<<<<<<< HEAD
+          risk_score?: number
+          role?: string
+          sentiment_drop?: number
+=======
           peer_sentiment?: number
           peer_sentiment_baseline?: number
           risk_score?: number
           role?: string
           sentiment_drop?: number
           skill_matrix?: Json
+>>>>>>> origin/enter-main
           status?: string
           tenure?: string
           updated_at?: string
         }
         Relationships: []
       }
+<<<<<<< HEAD
+=======
       mobility_plan: {
         Row: {
           created_at: string
@@ -163,6 +194,7 @@ export type Database = {
           },
         ]
       }
+>>>>>>> origin/enter-main
       profiles: {
         Row: {
           created_at: string
@@ -187,6 +219,8 @@ export type Database = {
         }
         Relationships: []
       }
+<<<<<<< HEAD
+=======
       retention_task_events: {
         Row: {
           created_at: string
@@ -338,16 +372,21 @@ export type Database = {
           },
         ]
       }
+>>>>>>> origin/enter-main
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+<<<<<<< HEAD
+      [_ in never]: never
+=======
       record_retention_task: {
         Args: { p_completed: boolean; p_evidence: string; p_task_id: string }
         Returns: undefined
       }
       start_retention_case: { Args: { p_employee_id: string }; Returns: string }
+>>>>>>> origin/enter-main
     }
     Enums: {
       [_ in never]: never
