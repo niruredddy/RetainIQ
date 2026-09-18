@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, FileText, Zap } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +28,20 @@ export default function ActionCenter() {
     employees?.find((e) => e.employee_code === employeeCode) ?? employees?.[0] ?? null;
   const workflowNodes = nodes ?? [];
 
+  // One row per employee (the latest case state), newest activity first.
+  const executions = useMemo(() => {
+    const latestByEmployee = new Map<string, (typeof workflows)[number]>();
+    for (const wf of workflows ?? []) {
+      const prev = latestByEmployee.get(wf.employee_id);
+      if (!prev || new Date(wf.updated_at) > new Date(prev.updated_at)) {
+        latestByEmployee.set(wf.employee_id, wf);
+      }
+    }
+    return Array.from(latestByEmployee.values()).sort(
+      (a, b) => +new Date(b.updated_at) - +new Date(a.updated_at)
+    );
+  }, [workflows]);
+
   const [completed, setCompleted] = useState<number[]>([]);
   const [running, setRunning] = useState(false);
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -52,7 +66,7 @@ export default function ActionCenter() {
 
     workflowNodes.forEach((_, i) => {
       timeouts.current.push(
-        setTimeout(() => setCompleted((c) => [...c, i]), 500 + i * 700)
+        setTimeout(() => setCompleted((c) => [...c, i]), 600 + i * 900)
       );
     });
     timeouts.current.push(
@@ -62,7 +76,7 @@ export default function ActionCenter() {
           completeWorkflow(wfId).catch(() => undefined);
         }
         invalidateWorkflows();
-      }, 500 + workflowNodes.length * 700 + 300)
+      }, 600 + workflowNodes.length * 900 + 300)
     );
   };
 
@@ -283,7 +297,7 @@ export default function ActionCenter() {
             </CardContent>
           ) : (
             <div className="divide-y divide-border">
-              {workflows.slice(0, 6).map((wf) => (
+              {executions.slice(0, 6).map((wf) => (
                 <div
                   key={wf.id}
                   className="grid grid-cols-[minmax(0,1.6fr)_0.8fr_1fr] items-center gap-3 px-5 py-3 transition-colors duration-200 hover:bg-accent/40"

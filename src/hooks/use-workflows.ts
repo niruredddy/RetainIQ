@@ -54,7 +54,30 @@ export function activeWorkflowCount(rows: WorkflowRow[] | undefined) {
   return rows?.filter((w) => w.status !== "completed").length ?? 0;
 }
 
+/**
+ * Starts a retention workflow for an employee. One case per employee:
+ * re-running the same employee re-uses their existing workflow row instead of
+ * creating duplicates.
+ */
 export async function startWorkflow(employeeId: string) {
+  const { data: existing } = await supabase
+    .from("workflows")
+    .select("id")
+    .eq("employee_id", employeeId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("workflows")
+      .update({ status: "in_progress" })
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return data as { id: string };
+  }
+
   const { data, error } = await supabase
     .from("workflows")
     .insert({ employee_id: employeeId, status: "in_progress" })
