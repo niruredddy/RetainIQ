@@ -133,7 +133,33 @@ export default function MobilityMatcher() {
   }
 
   const target = plan.target_role ?? { title: "", department: "", openings: 0 };
-  const phases = plan.roadmap_phases ?? [];
+
+  // Roadmap is derived LIVE from this employee's actual gaps — every person
+  // gets their own upskilling plan, and it changes when their skills change.
+  const mid = Math.ceil(gaps.length / 2);
+  const phases = [
+    {
+      week: "Week 1",
+      phase: "Fundamentals",
+      days: "Days 1–4",
+      topics: gaps.slice(0, mid).length ? gaps.slice(0, mid) : ["Skill foundation"],
+      progress: 0,
+    },
+    {
+      week: "Week 2",
+      phase: "Advanced",
+      days: "Days 5–9",
+      topics: gaps.slice(mid).length ? gaps.slice(mid) : ["Advanced practice"],
+      progress: 0,
+    },
+    {
+      week: "Week 3",
+      phase: "Capstone",
+      days: "Days 10–13",
+      topics: ["Prod Migration Lab", "Architecture Review"],
+      progress: 0,
+    },
+  ];
 
   return (
     <>

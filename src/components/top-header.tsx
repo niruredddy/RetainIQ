@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
+import { useEmployees } from "@/hooks/use-employees";
 
 export function TopHeader({
   onOpenSearch,
@@ -28,7 +29,10 @@ export function TopHeader({
   const { pathname } = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const { data: employees } = useEmployees();
   const isDark = resolvedTheme === "dark";
+  const criticalSignals =
+    employees?.filter((e) => e.risk_score > 70).length ?? 0;
 
   const current =
     pathname === "/"
@@ -122,7 +126,11 @@ export function TopHeader({
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>3 new signals</p>
+            <p>
+              {criticalSignals > 0
+                ? `${criticalSignals} critical signal${criticalSignals === 1 ? "" : "s"}`
+                : "No critical signals"}
+            </p>
           </TooltipContent>
         </Tooltip>
 
