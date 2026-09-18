@@ -1,0 +1,15 @@
+-- Required skills for the target role: live skill-gap computation source
+alter table public.mobility_plan
+  add column required_skills jsonb not null default '[]'::jsonb;
+
+update public.mobility_plan
+set required_skills = '["Kubernetes","Terraform","Istio","Helm","ArgoCD","Vault","AWS","CI/CD","Python","PostgreSQL","Docker","Kafka","GraphQL","TypeScript","React","Airflow"]'::jsonb
+where required_skills = '[]'::jsonb;
+
+-- Sentiment baseline for live BASELINE -> NOW readouts
+alter table public.employees
+  add column peer_sentiment_baseline integer not null default 92;
+
+-- Realtime: push DB changes to subscribed clients
+alter publication supabase_realtime add table public.workflows;
+alter publication supabase_realtime add table public.employees;

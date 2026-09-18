@@ -68,7 +68,11 @@ function buildScene(container: HTMLElement, variant: Variant): SceneState {
     alpha: true,
     powerPreference: "low-power",
   });
+<<<<<<< HEAD
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+=======
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+>>>>>>> origin/enter-main
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.style.position = "absolute";
@@ -260,7 +264,12 @@ export default function ThreeBackground({
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+<<<<<<< HEAD
     const state = buildScene(container, variant);
+=======
+    let state: SceneState;
+    try { state = buildScene(container, variant); } catch { return; }
+>>>>>>> origin/enter-main
     stateRef.current = state;
 
     const tick = () => {
@@ -320,16 +329,31 @@ export default function ThreeBackground({
       state.camera.updateProjectionMatrix();
       state.renderer.setSize(w, h);
     };
+<<<<<<< HEAD
     const onVis = () => {
       const visible = document.visibilityState === "visible";
+=======
+    let onScreen = true;
+    const onVis = () => {
+      const visible = document.visibilityState === "visible" && onScreen;
+>>>>>>> origin/enter-main
       if (visible && !state.running && !prefersReduced) {
         state.running = true;
         tick();
       } else if (!visible) {
         state.running = false;
+<<<<<<< HEAD
       }
     };
 
+=======
+        cancelAnimationFrame(state.raf);
+      }
+    };
+
+    const observer = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; onVis(); });
+    observer.observe(container);
+>>>>>>> origin/enter-main
     window.addEventListener("mousemove", onMouse);
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", onVis);
@@ -337,6 +361,10 @@ export default function ThreeBackground({
     return () => {
       state.running = false;
       cancelAnimationFrame(state.raf);
+<<<<<<< HEAD
+=======
+      observer.disconnect();
+>>>>>>> origin/enter-main
       window.removeEventListener("mousemove", onMouse);
       window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVis);
@@ -398,6 +426,10 @@ export default function ThreeBackground({
       (state.ringB.material as THREE.LineBasicMaterial).color.copy(p.ring);
       (state.ringB.material as THREE.LineBasicMaterial).opacity = p.ringOpacity;
     }
+<<<<<<< HEAD
+=======
+    state.renderer.render(state.scene, state.camera);
+>>>>>>> origin/enter-main
   }, [resolvedTheme]);
 
   return (

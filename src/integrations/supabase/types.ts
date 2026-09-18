@@ -14,8 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+<<<<<<< HEAD
       employees: {
         Row: {
+=======
+      agent_threads: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          latest_history_turn_id: number
+          running_turn_id: number | null
+          server_recorded: boolean
+          thread_id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          latest_history_turn_id?: number
+          running_turn_id?: number | null
+          server_recorded?: boolean
+          thread_id: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          latest_history_turn_id?: number
+          running_turn_id?: number | null
+          server_recorded?: boolean
+          thread_id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          attendance_pattern: Json
+>>>>>>> origin/enter-main
           created_at: string
           employee_code: string
           gradient: string
@@ -23,14 +71,27 @@ export type Database = {
           initials: string
           name: string
           overtime_spike: number
+<<<<<<< HEAD
           risk_score: number
           role: string
           sentiment_drop: number
+=======
+          peer_sentiment: number
+          peer_sentiment_baseline: number
+          risk_score: number
+          role: string
+          sentiment_drop: number
+          skill_matrix: Json
+>>>>>>> origin/enter-main
           status: string
           tenure: string
           updated_at: string
         }
         Insert: {
+<<<<<<< HEAD
+=======
+          attendance_pattern?: Json
+>>>>>>> origin/enter-main
           created_at?: string
           employee_code: string
           gradient: string
@@ -38,14 +99,27 @@ export type Database = {
           initials: string
           name: string
           overtime_spike?: number
+<<<<<<< HEAD
           risk_score?: number
           role: string
           sentiment_drop?: number
+=======
+          peer_sentiment?: number
+          peer_sentiment_baseline?: number
+          risk_score?: number
+          role: string
+          sentiment_drop?: number
+          skill_matrix?: Json
+>>>>>>> origin/enter-main
           status?: string
           tenure: string
           updated_at?: string
         }
         Update: {
+<<<<<<< HEAD
+=======
+          attendance_pattern?: Json
+>>>>>>> origin/enter-main
           created_at?: string
           employee_code?: string
           gradient?: string
@@ -53,15 +127,74 @@ export type Database = {
           initials?: string
           name?: string
           overtime_spike?: number
+<<<<<<< HEAD
           risk_score?: number
           role?: string
           sentiment_drop?: number
+=======
+          peer_sentiment?: number
+          peer_sentiment_baseline?: number
+          risk_score?: number
+          role?: string
+          sentiment_drop?: number
+          skill_matrix?: Json
+>>>>>>> origin/enter-main
           status?: string
           tenure?: string
           updated_at?: string
         }
         Relationships: []
       }
+<<<<<<< HEAD
+=======
+      mobility_plan: {
+        Row: {
+          created_at: string
+          current_competencies: Json
+          employee_code: string
+          id: string
+          match_score: number
+          required_skills: Json
+          roadmap_phases: Json
+          skill_delta: Json
+          target_role: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_competencies?: Json
+          employee_code: string
+          id?: string
+          match_score?: number
+          required_skills?: Json
+          roadmap_phases?: Json
+          skill_delta?: Json
+          target_role?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_competencies?: Json
+          employee_code?: string
+          id?: string
+          match_score?: number
+          required_skills?: Json
+          roadmap_phases?: Json
+          skill_delta?: Json
+          target_role?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobility_plan_employee_code_fkey"
+            columns: ["employee_code"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["employee_code"]
+          },
+        ]
+      }
+>>>>>>> origin/enter-main
       profiles: {
         Row: {
           created_at: string
@@ -86,12 +219,174 @@ export type Database = {
         }
         Relationships: []
       }
+<<<<<<< HEAD
+=======
+      retention_task_events: {
+        Row: {
+          created_at: string
+          evidence: string
+          id: string
+          recorded_by: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence: string
+          id?: string
+          recorded_by: string
+          status: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: string
+          id?: string
+          recorded_by?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_task_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "retention_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retention_tasks: {
+        Row: {
+          evidence: string | null
+          id: string
+          node_id: string
+          owner_label: string
+          position: number
+          recorded_at: string | null
+          recorded_by: string | null
+          status: string
+          title: string
+          workflow_id: string
+        }
+        Insert: {
+          evidence?: string | null
+          id?: string
+          node_id: string
+          owner_label: string
+          position: number
+          recorded_at?: string | null
+          recorded_by?: string | null
+          status?: string
+          title: string
+          workflow_id: string
+        }
+        Update: {
+          evidence?: string | null
+          id?: string
+          node_id?: string
+          owner_label?: string
+          position?: number
+          recorded_at?: string | null
+          recorded_by?: string | null
+          status?: string
+          title?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retention_tasks_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retention_tasks_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_nodes: {
+        Row: {
+          created_at: string
+          id: string
+          owner: string
+          position: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner: string
+          position: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner?: string
+          position?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      workflows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          status: string
+          tracking_mode: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          status?: string
+          tracking_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          status?: string
+          tracking_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+>>>>>>> origin/enter-main
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+<<<<<<< HEAD
       [_ in never]: never
+=======
+      record_retention_task: {
+        Args: { p_completed: boolean; p_evidence: string; p_task_id: string }
+        Returns: undefined
+      }
+      start_retention_case: { Args: { p_employee_id: string }; Returns: string }
+>>>>>>> origin/enter-main
     }
     Enums: {
       [_ in never]: never

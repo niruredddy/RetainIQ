@@ -1,0 +1,8 @@
+drop policy workflows_update on public.workflows;
+create policy workflows_update on public.workflows
+  for update to authenticated using (true);
+
+delete from public.workflows w
+using public.workflows w2
+where w.employee_id = w2.employee_id
+  and w.created_at < w2.created_at;

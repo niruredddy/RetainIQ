@@ -24,6 +24,10 @@ export default defineConfig(({ mode }) => {
     base: '/',
     build: {
       outDir: 'dist',
+<<<<<<< HEAD
+=======
+      manifest: true,
+>>>>>>> origin/enter-main
     }
   };
 });

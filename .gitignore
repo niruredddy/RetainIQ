@@ -13,11 +13,14 @@ dist-ssr
 reports
 *.local
 
+<<<<<<< HEAD
 # Environment variables
 .env
 .env.*
 !.env.example
 
+=======
+>>>>>>> origin/enter-main
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -29,3 +32,10 @@ reports
 *.sln
 *.sw?
 code_template.zip
+<<<<<<< HEAD
+=======
+retainiq-project.zip
+test-results/
+playwright-report/
+.enter/performance-audit/
+>>>>>>> origin/enter-main
