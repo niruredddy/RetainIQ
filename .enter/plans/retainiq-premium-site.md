@@ -1,83 +1,89 @@
-# RetainIQ — Premium Marketing Site with WebGL 3D Background
+# RetainIQ: distinctive 3D design and credible product behavior
 
 ## Context
+You want a professional, attractive workforce-retention product, with a signup background that is visibly different from the dashboard, and an experienced engineering review—not just cosmetic changes. The recommendation is to improve the existing product rather than add unrelated screens. No design can guarantee a competition win; credible evidence and reliable behavior matter as much as presentation.
 
-The RetainIQ dashboard (previous task) is being **replaced entirely** by a premium marketing website for the same product (workforce mobility & retention intelligence). User requirements:
-- **Premium, professional, NEAT and clean** — explicitly "completely different from common AI-generated websites," but refined, not heavily textured (no grain overlays, dense grids, or scanlines).
-- **Real WebGL 3D background** (three.js): animated particle network / data globe.
-- **KEEP the existing splash/logo screen** (RetainIQ typewriter splash) on app load.
-- **KEEP the light/dark theme toggle** — both themes fully designed.
-- Elements that suit the project: risk radar, Qwen diagnostics, skill matching, retention workflows.
+Reviewed: authentication, dashboard, Risk Radar, Deep-Dive, Mobility Matcher, Action Center, navigation, search, notifications, realtime hooks, custom-agent proxy, database schema and relevant access policies. Visually inspected `/auth` at desktop 1280px and mobile 390px. Authenticated browser behavior has not yet been verified.
 
-The forced `building-dashboard` skill covers Axiom dashboards via API and does not map to a React marketing site; per its own "compute what's asked" principle I apply its decision-first, no-filler thinking to the section hierarchy instead of its Axiom tooling.
+### Most important findings
+- Signup currently uses the same ambient background as the app; it lacks a distinct visual story.
+- Authentication can remain in a submitting state after signup without a session. Password visibility/recovery and safe return-to-route handling are missing. The SOC 2 certification claim is not substantiated.
+- Risk Radar hardcodes workflow and record counts. Notifications have no click action; search advertises employee search but only searches pages. Sidebar navigation drops employee selection.
+- Deep-Dive can show the previous employee's diagnostic after selection changes. Failed AI calls produce fabricated output labeled cached AI; the proxy cancels its stream early and does not verify thread ownership before polling.
+- Action Center declares operational completion using timers, even when database writes fail. Duplicate prevention is not atomic.
+- Mobility Matcher can load forever when there is no plan and ignores stored roadmap phases in favor of hardcoded content/progress.
+- Database updates and genuine HR-system ingestion are different: existing seeded records are not evidence of connected HR telemetry. Current policies allow all signed-in users to read employee records and update workflows; this is not proven organization-level isolation.
+- Dashboard mounts two WebGL scenes. Router construction occurs inside render, and a timed splash unnecessarily blocks access.
 
-**Aesthetic direction — "Refined Intelligence Command Center":** cinematic but clean. Full-viewport WebGL particle constellation + rotating wireframe data globe (subtle, theme-aware colors), glass panels with generous whitespace, monospace telemetry accents, electric blue primary + emerald success. Restrained palette, consistent 8px spacing, 200ms micro-interactions. Typography: **Sora** (display) + **Manrope** (body) + **JetBrains Mono** (data) — clean and professional, deliberately not Inter/Space Grotesk.
+## Recommended design
+**Direction: Talent in Motion.** Retain the RetainIQ name, Sora/Manrope typography, blue identity, emerald growth accents, and light/dark themes.
 
-## Dependencies
+**Sign in / signup:** a premium split layout, with a sculptural 3D network of talent nodes and ascending career-path ribbons on the left and a stable, high-contrast form on the right. This is explicitly not another globe or random particle field. Use a concise workforce-growth headline and three explanatory labels: Understand signals, Find opportunities, Coordinate action—no invented metrics. Mobile keeps the form prominent and uses a compact dimensional illustration rather than hiding the requested visual entirely.
 
-- Add `three` + `@types/three` (plain three.js in a `useEffect` canvas — no react-three-fiber, avoids React 19 peer-dep risk, leaner bundle).
+**Dashboard and modules:** preserve the dashboard globe identity but use only one active scene. Add restrained layered surfaces, inset highlights, consistent status treatments and small hover lifts. Keep tables, charts and reading surfaces flat enough to scan. Avoid animated backgrounds behind dense data and avoid tilting input forms.
 
-## Files
-
-### New
-- `src/pages/landing.tsx` — composes the full page from the site components below.
-- `src/components/site/three-background.tsx` — **lazy-loaded** (React.lazy + Suspense with clean gradient fallback) WebGL canvas, fixed behind content. Scene: ~250-node particle constellation (static link pairs, slow drift, additive blending) + transparent wireframe icosahedron "data globe" with a rotating ring, slow auto-rotation, mouse parallax. **Theme-aware:** reads `useTheme` and adjusts particle/globe colors + opacity for light vs dark (deep blue on light, electric blue on dark). Guards: `pixelRatio` ≤ 2, rAF pauses on `document.hidden`, static frame under `prefers-reduced-motion`, resize handled, cleanup on unmount. Props: `variant: "hero" | "cta"`.
-- `src/components/site/reveal.tsx` — framer-motion `whileInView` reveal wrapper (opacity + y, 300ms, optional delay).
-- `src/components/site/navbar.tsx` — fixed glass nav: RetainIQ logo, anchor links (Product, Platform, Process), **Sun/Moon theme toggle**, "Sign in" ghost + "Book a demo" gradient CTA; backdrop-blur + border after scroll.
-- `src/components/site/hero.tsx` — full-viewport WebGL hero, mono eyebrow ("AUTONOMOUS WORKFORCE INTELLIGENCE · v1.0"), Sora headline with gradient accent word, subcopy, dual CTAs, mono telemetry ticker, scroll cue.
-- `src/components/site/ticker.tsx` — CSS marquee of mono metric readouts (numbers from `dashboard.ts`).
-- `src/components/site/logo-band.tsx` — "TRUSTED BY TEAMS THAT SHIP" + invented org names in mono.
-- `src/components/site/stats.tsx` — 3–4 clean mono stat cards with count-up (76% predictable attrition, 2.3× retention ROI, 14-day sprint, 247 monitored).
-- `src/components/site/features.tsx` — 4 product-pillar cards (Risk Radar, Deep-Dive Qwen, Mobility Matcher, Action Center), lucide icons, subtle hover lift + glow.
-- `src/components/site/platform-preview.tsx` — split section: copy + glass "browser window" with compact risk table (reuses `employees`) and mini area chart; mono caption bar.
-- `src/components/site/process.tsx` — 3-step numbered timeline (Ingest → Qwen diagnostic → Execute EnterPro workflow) with connector line.
-- `src/components/site/cta.tsx` — gradient panel with subtle WebGL (variant cta), headline, email input + "Request access" button.
-- `src/components/site/footer.tsx` — logo, mono link columns, "v1.0" badge, © 2026.
-
-### Modified
-- `src/index.css` — keep both verified token palettes from the dashboard (dark default: `#09090B` bg / `#121214` card / fg `#FAFAFA` / muted `#A1A1AA`; light: `#FAFAFA` / `#FFFFFF` / `#18181B` / `#52525B`; accents blue `#3B82F6`, emerald `#10B981`, rose, amber). **Clean treatment**: gradient tokens (hero radial, text gradient, CTA blue→indigo), glass utility, soft shadows — **no film grain / grid overlay / scanlines**. Keyframes: ticker, float, pulse-glow, gradient-x, blink.
-- `tailwind.config.ts` — fonts `display` (Sora) / `sans` (Manrope) / `mono` (JetBrains Mono); glow shadows; new keyframes/animations; keep existing color tokens.
-- `index.html` — Google Fonts (Sora 600/700, Manrope 400/500/600, JetBrains Mono 400/500/600/700); title/meta for RetainIQ.
-- `src/router.tsx` — `/` → Landing; `*` → NotFound. Dashboard routes removed.
-- `src/App.tsx` — keep `ThemeProvider` (dark default, both themes) + existing `SplashScreen` on load (AnimatePresence); wrap `RouterProvider`.
-
-### Kept (not deleted)
-- `src/components/splash-screen.tsx` (existing logo screen), `src/components/theme-provider.tsx`.
-
-### Deleted (dashboard-only)
-`app-shell.tsx`, `sidebar.tsx`, `top-header.tsx`, `command-palette.tsx`, `page-shell.tsx`, `risk-badge.tsx`, `lib/nav.ts`, `lib/diagnostic.ts`, `pages/Index.tsx`, `pages/risk-radar.tsx`, `pages/deep-dive.tsx`, `pages/mobility-matcher.tsx`, `pages/action-center.tsx`.
-
-### Reused
-- `src/data/dashboard.ts` (employees + metrics → ticker, stats, platform preview), `framer-motion`, `lucide-react`, shadcn `button`/`card`/`input`, `src/pages/NotFound.tsx`.
+Implement colors, elevations, focus styles and motion through semantic HSL tokens in `src/index.css` and `tailwind.config.ts`; reuse existing Card, Button, Input, Sheet/Dialog and EmployeeSelect components. Contrast must be tested, not assumed from palette names.
 
 ## Implementation checklist
+### 1. Visual foundation and authentication
+- [ ] Add a dedicated auth scene/component with career-path geometry, independent of the dashboard composition.
+- [ ] Provide an immediate CSS/SVG dimensional fallback; load decorative WebGL after the form is usable. Handle missing WebGL, context loss, resize and cleanup.
+- [ ] Cap rendering resolution, pause hidden/offscreen scenes, and respect reduced motion without removing essential content.
+- [ ] Recompose `src/pages/auth.tsx` into the split experience with visible field labels, password visibility, accessible errors, and a theme toggle.
+- [ ] Handle submission exceptions and email-confirmation success without endless loading; preserve safe same-app return destinations.
+- [ ] Add a real password-reset/request-and-update flow using existing authentication, with accurate confirmation/error states.
+- [ ] Remove unverified certification and zero-hallucination claims; use factual product copy instead.
+- [ ] Apply reusable surface/button/status recipes to the existing five app pages and themed 404 screen without changing their purpose.
 
-- [ ] Add `three` + `@types/three` via `add_dependency`.
-- [ ] `index.html`: fonts (Sora + Manrope + JetBrains Mono), title/meta.
-- [ ] `index.css`: keep light+dark token pairs; clean gradients/glass/soft shadows; ticker/float/pulse keyframes; no texture overlays.
-- [ ] `tailwind.config.ts`: display/sans/mono fonts, glow shadows, new animations.
-- [ ] `three-background.tsx`: WebGL constellation + data globe, theme-aware colors, perf guards, lazy import, Suspense fallback.
-- [ ] `reveal.tsx` + staggered hero load-in.
-- [ ] `navbar.tsx`: glass, scrollspy, **theme toggle**, CTAs.
-- [ ] `hero.tsx` + `ticker.tsx`: WebGL hero, Sora headline, mono marquee, scroll cue.
-- [ ] `logo-band.tsx`, `stats.tsx` (count-up), `features.tsx` (4 pillars), `process.tsx` (3-step timeline).
-- [ ] `platform-preview.tsx`: glass browser window with risk table + chart from `dashboard.ts`.
-- [ ] `cta.tsx` (subtle 3D + email form), `footer.tsx`.
-- [ ] `landing.tsx` composes all sections.
-- [ ] `router.tsx` `/` → Landing; `App.tsx` keeps ThemeProvider + SplashScreen; delete dashboard-only files.
-- [ ] `pnpm run check` and `pnpm run build` pass.
+### 2. Navigation, data and usability
+- [ ] Preserve the selected employee across sidebar, module links and command navigation; show an explicit invalid-employee state instead of silently substituting someone else.
+- [ ] Add employee search using the existing `useEmployees` cache, plus Risk Radar name/role search and risk filtering.
+- [ ] Make the notification button open current critical signals with employee-specific links; do not invent unread notifications.
+- [ ] Replace the custom mobile drawer with the existing accessible dialog/sheet pattern; close on navigation and restore focus.
+- [ ] Replace hardcoded counts with database queries, keeping total workflow counts independent of the paginated execution list.
+- [ ] Expose loading, empty, error/retry and last-fetched states across modules; distinguish database connection status from HR-source freshness.
+- [ ] Subscribe to employee, workflow, mobility-plan and workflow-node changes with matching query invalidation and cleanup; show disconnected/reconnecting status honestly.
+- [ ] Fetch mobility plans only after employee resolution, render missing-plan states, and use stored roadmap phases/progress. Missing milestones remain unconfigured, not fabricated.
+- [ ] Normalize/deduplicate skills for transparent overlap calculations; describe alignment as skill overlap, not a guaranteed career outcome.
+
+### 3. Diagnostic and workflow credibility
+- [ ] Remove fabricated cached diagnostic generation. Keep bounded loading, cancellation and actionable failure/retry states; suppress stale results after employee changes.
+- [ ] Load the custom-agent integration guidance, repair ownership-checked thread/run handling and supported streaming/event parsing, and validate diagnostic payloads before presenting success.
+- [ ] Show a readable evidence/recommendation summary alongside optional raw JSON, employee identity and generation time. Label recommendations as requiring human review.
+- [ ] Attempt an authenticated end-to-end agent run. If the upstream serving endpoint remains blocked, report that blocker and keep the UI truthful—do not substitute simulated AI or switch providers silently.
+- [ ] Replace timer-driven execution with **human-reviewed retention case tracking**: explicit task updates with recorded actor, timestamp and evidence/note; external dispatch/enrollment stays “not connected.”
+- [ ] Make case creation idempotent on the server under concurrent requests. Inspect existing records first; preserve historical cases rather than deleting or silently resetting them.
+- [ ] Persist case/task transitions and show success only after confirmed writes; reject invalid/unauthorized changes and preserve state after refresh.
+- [ ] Derive case completion from recorded task state, distinguish human-recorded completion from external confirmation, and do not treat older timer-completed records as verified evidence.
+
+### 4. Access safety and performance
+- [ ] Load Enter Cloud guidance before backend changes; inspect existing RetainIQ ownership and policy relationships. Preserve existing profiles, roles, records and unrelated tables.
+- [ ] Audit profile role-write permissions and workflow mutation authorization. Do not expose sensitive real employee data publicly or claim multi-organization isolation without implementing and testing it.
+- [ ] Keep router/provider instances stable; remove the forced timed splash and retain visible session-restoration states.
+- [ ] Keep `/auth` content in its initial dependency path, split noninitial app routes, and defer decorative Three.js without blanking critical content. Preserve editor, analytics and i18n contracts.
+- [ ] Update RetainIQ social metadata and enable production build-manifest evidence while preserving platform plugins.
+
+## Boundaries and external dependencies
+This work preserves the current route structure and business purpose. It does not add billing, a marketing-site rebuild, arbitrary HR integrations, or invented employee data.
+
+**Real workforce ingestion needs an authorized source and a confirmed access model.** Existing seeded rows must remain clearly identified as sample data until replaced through an approved import/integration. Choosing the source, organization membership rules and any HRIS/LMS/email service requires your input before connecting them. No secrets in frontend code.
+
+**Human case tracking is not automated execution.** The proposed workflow is functional internal tracking; actual manager dispatch, course enrollment and HRIS updates require configured services and confirmation from those services. Production readiness remains conditional on real source access, security validation and a successful live AI run.
+
+## Critical implementation paths
+- Design/auth: `src/pages/auth.tsx`, new focused components under `src/components/auth/`, `src/components/site/three-background.tsx`, `src/index.css`, `tailwind.config.ts`, `src/hooks/use-auth.tsx`.
+- Shell/navigation: `src/App.tsx`, `src/router.tsx`, `src/components/{app-shell,sidebar,top-header,command-palette}.tsx`, `src/hooks/use-employee-param.ts`.
+- Existing modules: `src/pages/{dashboard,risk-radar,deep-dive,mobility-matcher,action-center}.tsx`; reuse `useEmployees`, `useMobilityPlan`, `useWorkflows`, `useRealtimeInvalidate`, `EmployeeSelect` and `PageHeader`.
+- Diagnostics/backend: `src/lib/diagnostic.ts`, `supabase/functions/custom-agent/index.ts`, narrowly scoped RetainIQ migrations and workflow mutations after ownership review.
+- Build/metadata: `vite.config.ts`, `index.html`.
 
 ## Verification checklist
-
-- [ ] `pnpm run build` and `pnpm lint` pass clean.
-- [ ] Splash logo screen appears on load (both themes) and fades into the landing page.
-- [ ] `/` renders WebGL constellation + data globe behind hero; no WebGL/three.js console errors.
-- [ ] Theme toggle switches dark ↔ light; BOTH themes: bg/card/fg match spec hexes, contrast readable, no white-on-white; WebGL colors adapt to theme.
-- [ ] Display font is Sora (no Inter); mono data uses JetBrains Mono.
-- [ ] Ticker marquee runs; stats count up on scroll.
-- [ ] Nav scrollspy works; navbar gains blur+border on scroll; mobile nav shows logo + toggle + CTA only.
-- [ ] 4 feature cards lift/glow on hover; platform preview renders table from demo data.
-- [ ] CTA panel + email input aligned at `desktop_1280`.
-- [ ] Responsive: `/` at `mobile_390` and `desktop_1280` via `website_screenshot`; no horizontal overflow, hero text scales, sections stack.
-- [ ] Reduced-motion: static 3D frame; rAF pauses on tab hidden (code-level check).
-- [ ] No blank flash while three.js lazy-loads (Suspense fallback renders).
+- [ ] Validate auth sign-in/signup, confirmation-required signup, invalid credentials, recovery, restored sessions, safe return links and sign-out/cache clearing.
+- [ ] Check auth layout at `mobile_390` and `desktop_1280`, including create-account mode; verify light/dark, keyboard focus, reduced motion and WebGL fallback. Inspect only representative affected routes, not a screenshot sweep.
+- [ ] Follow Risk Radar → Deep-Dive → Mobility Matcher → Action Center with the same employee; test refresh, back navigation, no selection and an invalid employee code.
+- [ ] Test employee switching during a delayed diagnostic; verify late responses cannot replace the current employee's result. Test timeout, malformed output, cancellation and unauthorized thread access.
+- [ ] Test no employees, missing mobility plan, zero required skills, zero gaps, query failure and more than 20 workflows; no endless skeletons or false counts.
+- [ ] Test workflow double-click/concurrent creation, failed writes, unauthorized updates, refresh and task completion; no timer can produce completion.
+- [ ] Verify realtime updates using authorized test records without changing operational employee data; confirm reconnect status and no duplicated subscriptions.
+- [ ] Run `pnpm lint`, `pnpm exec tsc --noEmit`, relevant regression tests, `pnpm run build`, and `pnpm run build:prod`. Capture production manifest/bundle audit; the performance skill's audit reference was unavailable during planning and must be resolved or reported as a tooling blocker.
+- [ ] Report build audit, browser performance, functional regression and deployed HTTP verification separately as passed, failed, exempted or unverified. Screenshots/build success alone do not establish performance or end-to-end correctness.
