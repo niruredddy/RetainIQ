@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -20,21 +19,7 @@ import { cn } from "@/lib/utils";
 const ThreeBackground = lazy(
   () => import("@/components/site/three-background"),
 );
-const fadeUp = {
-  hidden: {
-    opacity: 1,
-    y: 12,
-  },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.55,
-      delay: 0.1 + i * 0.1,
-      ease: "easeOut" as const,
-    },
-  }),
-};
+const rise = (i: number) => ({ animationDelay: `${0.1 + i * 0.1}s` });
 const MODULES = [
   {
     path: "/risk-radar",
@@ -130,23 +115,17 @@ export default function Dashboard() {
         />
 
         <div className="relative z-10 pb-10 pt-14 lg:pt-20">
-          <motion.div
-            variants={fadeUp}
-            custom={0}
-            initial="hidden"
-            animate="show"
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.22em] text-muted-foreground"
+          <div
+            className="rise inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.22em] text-muted-foreground"
+            style={rise(0)}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             WORKFORCE INTELLIGENCE · PEOPLE FIRST
-          </motion.div>
+          </div>
 
-          <motion.h1
-            variants={fadeUp}
-            custom={1}
-            initial="hidden"
-            animate="show"
-            className="mt-6 max-w-2xl font-display text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl"
+          <h1
+            className="rise mt-6 max-w-2xl font-display text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl"
+            style={rise(1)}
           >
             Good morning, {firstName}.
             <br />
@@ -154,25 +133,19 @@ export default function Dashboard() {
               {" "}
               Help your people move forward.
             </span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            initial="hidden"
-            animate="show"
-            className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground"
+          <p
+            className="rise mt-4 max-w-xl text-base leading-relaxed text-muted-foreground"
+            style={rise(2)}
           >
             {heroCopy}
-          </motion.p>
+          </p>
 
           {/* Quick stats */}
-          <motion.div
-            variants={fadeUp}
-            custom={3}
-            initial="hidden"
-            animate="show"
-            className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
+          <div
+            className="rise mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
+            style={rise(3)}
           >
             {STAT_CONFIG.map((stat, i) => (
               <div
@@ -202,7 +175,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -224,13 +197,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {MODULES.map((mod, i) => (
-            <motion.div
-              key={mod.path}
-              variants={fadeUp}
-              custom={4 + i}
-              initial="hidden"
-              animate="show"
-            >
+            <div className="rise" key={mod.path} style={rise(4 + i)}>
               <Link
                 to={employeePath(mod.path)}
                 className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-glow-primary"
@@ -254,7 +221,7 @@ export default function Dashboard() {
                   <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </span>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -317,13 +284,7 @@ export default function Dashboard() {
           {!isLoading &&
             !isError &&
             topSignals.map((emp, i) => (
-              <motion.div
-                key={emp.id}
-                variants={fadeUp}
-                custom={8 + i}
-                initial="hidden"
-                animate="show"
-              >
+              <div className="rise" key={emp.id} style={rise(8 + i)}>
                 <Link
                   to={`/deep-dive?employee=${emp.employee_code}`}
                   className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-destructive/40 hover:shadow-soft"
@@ -361,7 +322,7 @@ export default function Dashboard() {
                     SENTIMENT −{emp.sentiment_drop}
                   </p>
                 </Link>
-              </motion.div>
+              </div>
             ))}
         </div>
       </section>

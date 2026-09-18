@@ -57,12 +57,14 @@ export async function runDiagnostic(
   const timer = setTimeout(() => {
     timedOut = true;
     cancel();
-  }, 90_000);
+  }, 150_000);
+  let lastText = "";
   const ensureActive = () => {
     if (deadline.signal.aborted || signal.aborted)
       throw new Error(
         timedOut
-          ? "The diagnostic exceeded 90 seconds. Please retry."
+          ? "The diagnostic exceeded the time limit. The agent may be busy; please retry. " +
+            (lastText ? `Last agent output: ${lastText.slice(0, 160)}` : "")
           : "Diagnostic cancelled.",
       );
   };
@@ -112,6 +114,19 @@ export async function runDiagnostic(
     const activeClient = client;
     unsubscribe = client.subscribe(() => {
       if (!signal.aborted) onTurns([...activeClient.turns]);
+      const latest = [...activeClient.turns]
+        .flatMap((turn) => turn.messages)
+        .filter(
+          (message) =>
+            message.kind === "message" &&
+            message.message.role === "assistant" &&
+            typeof message.message.content === "string",
+        )
+        .map((message) =>
+          message.kind === "message" ? message.message.content : "",
+        )
+        .join("\n");
+      if (latest) lastText = latest;
     });
     manager.register(threadId, client);
     await manager.resume(threadId);
@@ -134,22 +149,54 @@ export async function runDiagnostic(
       (message) =>
         message.kind === "message" && message.message.role === "assistant",
     );
-    const last = answers[answers.length - 1];
-    const text =
-      last?.kind === "message" && typeof last.message.content === "string"
-        ? last.message.content
-        : "";
-    const candidate = text
-      .replace(/^\s*```(?:json)?\s*/i, "")
-      .replace(/\s*```\s*$/, "");
-    let payload: z.infer<typeof DiagnosticSchema>;
-    try {
-      payload = DiagnosticSchema.parse(JSON.parse(candidate));
-    } catch {
-      throw new Error(
-        "The agent response did not match the diagnostic format. No validated result is available; please retry.",
-      );
+    const text = answers
+      .map((message) => {
+        if (message.kind !== "message") return "";
+        const content = message.message.content;
+        if (typeof content === "string") return content;
+        if (Array.isArray(content))
+          return content
+            .filter(
+              (part): part is { type: "text"; text: string } =>
+                typeof part === "object" &&
+                part !== null &&
+                (part as { type?: string }).type === "text" &&
+                typeof (part as { text?: unknown }).text === "string",
+            )
+            .map((part) => part.text)
+            .join("\n");
+        return "";
+      })
+      .join("\n");
+    // Accept the plain reply, fenced JSON, or the first/last JSON object block.
+    const candidates = [text];
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced) candidates.push(fenced[1]);
+    const blocks = [...text.matchAll(/\{[\s\S]*?\}/g)].map((m) => m[0]);
+    if (blocks.length) {
+      candidates.push(blocks[0], blocks[blocks.length - 1]);
     }
+    let payload: z.infer<typeof DiagnosticSchema> | null = null;
+    let parseError = "";
+    for (const candidate of candidates) {
+      try {
+        const parsed = DiagnosticSchema.safeParse(JSON.parse(candidate));
+        if (parsed.success) {
+          payload = parsed.data;
+          break;
+        }
+        parseError = parsed.error.issues
+          .slice(0, 2)
+          .map((issue) => issue.path.join(".") || "value")
+          .join(", ");
+      } catch {
+        /* try the next candidate */
+      }
+    }
+    if (!payload)
+      throw new Error(
+        `The agent response did not match the diagnostic format${parseError ? ` (${parseError})` : ""}. No validated result is available; please retry.`,
+      );
     if (payload.employee_id !== employeeId)
       throw new Error(
         "The response employee does not match the selected employee. Result rejected.",

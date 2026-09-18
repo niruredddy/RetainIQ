@@ -1,4 +1,3 @@
-import { MotionConfig } from "framer-motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -18,9 +17,7 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <MotionConfig reducedMotion="user">
-              <RouterProvider router={router} />
-            </MotionConfig>
+            <RouterProvider router={router} />
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

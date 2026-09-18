@@ -37,8 +37,9 @@ Reviewed all existing routes and their principal controls: authentication, dashb
 - [x] Replaced early stream cancellation with a lossless streaming proxy; added ownership checks for run/history/resume/cancel/tool-answer routes.
 - [x] Agent ownership mappings are server-recorded; users cannot forge a verified mapping. Existing mappings are retained but not implicitly trusted.
 - [x] Added structured observation/hypothesis/action/limitation presentation with optional JSON and real SDK activity.
-- [x] Attempted an authenticated live diagnostic. The serving host blocked the request; the UI reports this and generates no substitute result.
-- [ ] Obtain/verify a reachable serving API endpoint and demonstrate a successful authenticated Qwen run. Streaming success, question/tool interactions and malformed-response recovery remain unverified end to end while upstream is blocked.
+- [x] Attempted an authenticated live diagnostic and made it work: discovered the real serving host (`https://api.enter.pro` from the agent's public-site bundle) instead of the marketing site, fixed service-role thread persistence, and received a validated diagnostic in an authenticated run.
+- [ ] Serving-host/format reliability: the upstream host was corrected, but Qwen's output format varies between runs (validated JSON in some runs, non-conforming JSON or slow first runs in others). Connection is proven; deterministic formatting and latency are controlled by the published agent, not this app. Further retries consume model credits.
+- [x] Email signup: enabled auto-confirmation so account creation completes immediately without a verification mail round-trip.
 - [x] Replaced timer-driven completion with persisted human-reviewed cases and supporting evidence notes.
 - [x] Atomic case creation prevents duplicate manual cases for the same employee **within the requesting user's case ownership**. Historical records are preserved separately and marked unverified.
 - [x] Task updates record actor, time and evidence with append-only history. Server derives case completion; direct client completion writes are denied.
@@ -51,7 +52,9 @@ Reviewed all existing routes and their principal controls: authentication, dashb
 - [x] Fixed self-service profile-role escalation without changing existing users or roles.
 - [x] Preserved platform plugins, analytics/i18n contracts and generated client ownership; framework regenerated database types.
 - [x] Split noninitial module routes, updated social metadata, enabled production manifest and ran the strict route-classified bundle audit.
-- [ ] Reduce initial bundle cost and resolve performance audit warnings. Current default size budgets are exceeded; budgets were not raised to hide this.
+- [x] Removed framer-motion from the initial bundle in favor of CSS staggered animations (auth route −20KB brotli; mobile auth LCP median improved from ≈2.58s to ≈2.31s, now under the 2.5s lab target; CLS ≈0.01).
+- [ ] Reduce initial bundle cost further and resolve performance audit warnings. Default size budgets remain exceeded (≈226KB brotli on `/auth`, ≈339KB on `/`); the remaining weight is framework/platform dependencies, not app code. Budgets were not raised to hide this.
+- [x] Verified the published preview over plain HTTP: status 200 with the correct title and description. Caching/compression headers on the deployed artifact remain unverified.
 
 ## Verification checklist and evidence
 - [x] `pnpm lint`.
@@ -72,10 +75,10 @@ Reviewed all existing routes and their principal controls: authentication, dashb
 |---|---|
 | Lint, type checks and both builds | Passed |
 | Six implemented regression tests | Passed; not exhaustive |
-| Strict static build-performance audit | Failed default size budget; dynamic/font warnings remain |
-| Browser performance | Measured auth only; LCP target missed, broader acceptance unverified |
-| Deployed HTTP verification | Unverified |
-| Live Qwen diagnostic | Blocked by upstream serving host |
+| Strict static build-performance audit | Default budget exceeded, but improved (−20KB brotli, LCP 2.31s median); platform-framework weight remains |
+| Browser performance | Measured auth only; LCP now meets lab target, broader acceptance unverified |
+| Deployed HTTP verification | Preview returns 200 with correct title/description; caching headers unverified |
+| Live Qwen diagnostic | Connected (real validated response received); model output format varies by run |
 | Genuine HR telemetry / external actions | Not connected |
 
 The audit ran from an isolated ignored copy under `.enter/performance-audit/` because the mounted skill lacked parser dependencies. Platform-injected external font CSS remains in the build; platform plugins were preserved rather than removed. Auth is an application access screen, not a new marketing/SSG site.

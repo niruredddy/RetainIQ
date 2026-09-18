@@ -161,7 +161,7 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
             <AgentActivity turns={turns} />
             <p className="text-[10px] text-muted-foreground">
               No result is shown until a valid response is received. Maximum
-              wait: 90 seconds.
+              wait: 150 seconds.
             </p>
           </div>
         )}

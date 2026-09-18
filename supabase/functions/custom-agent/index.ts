@@ -1,6 +1,8 @@
 // Published custom-agent proxy: credentials stay on the server; AG-UI stays lossless.
+// Discovered from the published agent's public-site bundle: the serving API
+// lives on api.enter.pro, not on the marketing site enter.converge.ai.
 const BASE = (
-  Deno.env.get("ENTER_API_BASE_URL") ?? "https://enter.converge.ai"
+  Deno.env.get("ENTER_API_BASE_URL") ?? "https://api.enter.pro"
 ).replace(/\/+$/, "");
 const KEY = Deno.env.get("ENTER_API_KEY") ?? "";
 const AGENT = "ff08b4ab-1410-4d0d-9a88-ff4103ea0e64";
@@ -31,6 +33,21 @@ async function cloud(path: string, token: string, init: RequestInit = {}) {
       "Content-Type": "application/json",
       ...init.headers,
     },
+    signal: AbortSignal.timeout(12_000),
+  });
+}
+/** Server-side write with matching service-role credentials (gateway rejects
+ * a service JWT paired with the anon apikey). */
+async function cloudAdmin(path: string, body: unknown) {
+  return fetch(`${CLOUD}${path}`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(12_000),
   });
 }
@@ -111,22 +128,26 @@ Deno.serve(async (req) => {
         fail("The agent returned an invalid thread.", 502);
       if (!SERVICE_KEY)
         fail("Secure diagnostic thread storage is unavailable.", 503);
-      const stored = await cloud("/rest/v1/agent_threads", SERVICE_KEY, {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: user.id,
-          agent_id: AGENT,
-          thread_id: thread.thread_id,
-          version: thread.version ?? 1,
-          title: `diagnostic:${code}`,
-          server_recorded: true,
-        }),
+      const stored = await cloudAdmin("/rest/v1/agent_threads", {
+        user_id: user.id,
+        agent_id: AGENT,
+        thread_id: thread.thread_id,
+        version: thread.version ?? 1,
+        title: `diagnostic:${code}`,
+        server_recorded: true,
       });
-      if (!stored.ok)
+      if (!stored.ok) {
+        const body = await stored.clone().text().catch(() => "");
+        console.error(
+          "thread_record_failed",
+          stored.status,
+          body.slice(0, 200),
+        );
         fail(
-          "Unable to save the diagnostic thread. The run was not started.",
+          `Unable to save the diagnostic thread (${stored.status}). The run was not started.`,
           500,
         );
+      }
       return json(thread);
     }
     if (req.method === "POST" && parts.join("/") === "run") {
