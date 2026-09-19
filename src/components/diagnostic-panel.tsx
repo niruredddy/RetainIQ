@@ -6,9 +6,11 @@ import {
   ScanSearch,
   Square,
   ArrowRight,
+  Workflow,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { runDiagnostic, type DiagnosticResult } from "@/lib/diagnostic";
+import { startWorkflow } from "@/hooks/use-workflows";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 
@@ -68,13 +70,22 @@ function AgentActivity({ turns }: { turns: readonly ThreadTurn[] }) {
     </div>
   );
 }
-export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
+export function DiagnosticPanel({
+  employeeCode,
+  employeeId,
+}: {
+  employeeCode: string;
+  employeeId: string;
+}) {
+  const navigate = useNavigate();
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [turns, setTurns] = useState<readonly ThreadTurn[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [executing, setExecuting] = useState(false);
+  const [executeError, setExecuteError] = useState<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
@@ -137,6 +148,27 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
       setError(
         "Clipboard unavailable. You can select the JSON below to copy it.",
       );
+    }
+  };
+  const execute = async () => {
+    if (executing || !result) return;
+    setExecuting(true);
+    setExecuteError(null);
+    try {
+      await startWorkflow(
+        employeeId,
+        result.payload.recommended_actions,
+        result.payload.summary,
+      );
+      navigate(`/action-center?employee=${encodeURIComponent(employeeCode)}`);
+    } catch (err) {
+      setExecuteError(
+        err instanceof Error
+          ? err.message
+          : "The retention plan could not be executed. Please retry.",
+      );
+    } finally {
+      setExecuting(false);
     }
   };
   return (
@@ -218,7 +250,7 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
               </section>
             ))}
             <section>
-              <h3 className="text-xs font-semibold">Suggested human actions</h3>
+              <h3 className="text-xs font-semibold">Recommended actions</h3>
               {result.payload.recommended_actions.map((action, i) => (
                 <p
                   key={i}
@@ -246,14 +278,42 @@ export function DiagnosticPanel({ employeeCode }: { employeeCode: string }) {
                 {JSON.stringify(result.payload, null, 2)}
               </pre>
             </details>
-            <Button asChild variant="outline" className="w-full">
-              <Link
-                to={`/action-center?employee=${encodeURIComponent(employeeCode)}`}
+            <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Execution creates a tracked case from the{" "}
+                {result.payload.recommended_actions.length} recommended actions
+                above, assigns each to its suggested owner and sets staggered
+                due dates in the Action Center.
+              </p>
+              {executeError && (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+                >
+                  {executeError}
+                </p>
+              )}
+              <Button
+                className="w-full"
+                disabled={executing || !result.payload.recommended_actions.length}
+                onClick={() => void execute()}
               >
-                Review retention actions
-                <ArrowRight size={14} />
-              </Link>
-            </Button>
+                {executing ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <Workflow size={16} />
+                )}
+                Execute retention plan
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link
+                  to={`/action-center?employee=${encodeURIComponent(employeeCode)}`}
+                >
+                  Review existing retention actions
+                  <ArrowRight size={14} />
+                </Link>
+              </Button>
+            </div>
           </>
         )}
       </div>

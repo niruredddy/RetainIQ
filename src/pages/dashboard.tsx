@@ -1,9 +1,5 @@
 import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-<<<<<<< HEAD
-import { motion } from "framer-motion";
-=======
->>>>>>> origin/enter-main
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -16,21 +12,6 @@ import {
 } from "lucide-react";
 import { RiskBadge } from "@/components/risk-badge";
 import { useEmployees } from "@/hooks/use-employees";
-<<<<<<< HEAD
-import { cn } from "@/lib/utils";
-
-const ThreeBackground = lazy(() => import("@/components/site/three-background"));
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, delay: 0.1 + i * 0.1, ease: "easeOut" as const },
-  }),
-};
-
-=======
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkflowCount } from "@/hooks/use-workflows";
 import { useEmployeeParam } from "@/hooks/use-employee-param";
@@ -39,55 +20,34 @@ const ThreeBackground = lazy(
   () => import("@/components/site/three-background"),
 );
 const rise = (i: number) => ({ animationDelay: `${0.1 + i * 0.1}s` });
->>>>>>> origin/enter-main
 const MODULES = [
   {
     path: "/risk-radar",
     icon: Radar,
     index: "01",
     title: "Risk Radar",
-<<<<<<< HEAD
-    body: "Cross-vector attrition signals fused from HRIS, telemetry and sentiment.",
-=======
     body: "Prioritize workforce signals and explore the context behind each record.",
->>>>>>> origin/enter-main
   },
   {
     path: "/deep-dive",
     icon: ScanSearch,
     index: "02",
     title: "Deep-Dive",
-<<<<<<< HEAD
-    body: "Qwen zero-hallucination diagnostics on a single employee's telemetry.",
-=======
-    body: "Agent-assisted review of recorded signals, with human judgment at the center.",
->>>>>>> origin/enter-main
+    body: "Diagnose flight risk from recorded signals, with the agent's structured review.",
   },
   {
     path: "/mobility-matcher",
     icon: GitBranch,
     index: "03",
     title: "Mobility Matcher",
-<<<<<<< HEAD
-    body: "Skill-graph gap matching against open internal requisitions.",
-=======
     body: "Compare recorded skills with a target role and its saved development plan.",
->>>>>>> origin/enter-main
   },
   {
     path: "/action-center",
     icon: Zap,
     index: "04",
     title: "Action Center",
-<<<<<<< HEAD
-    body: "One-click orchestration of retention workflows.",
-  },
-];
-
-const STAT_CONFIG = [
-  { icon: Users, label: "Total Monitored", iconClass: "border-border bg-muted/50 text-muted-foreground" },
-=======
-    body: "Human-led retention cases with recorded actions and supporting evidence.",
+    body: "Execute the retention plan — auto-orchestrated cases with owners, due dates and evidence.",
   },
 ];
 const STAT_CONFIG = [
@@ -96,7 +56,6 @@ const STAT_CONFIG = [
     label: "Total Monitored",
     iconClass: "border-border bg-muted/50 text-muted-foreground",
   },
->>>>>>> origin/enter-main
   {
     icon: AlertTriangle,
     label: "Critical Attrition Risk",
@@ -105,25 +64,11 @@ const STAT_CONFIG = [
   },
   {
     icon: Workflow,
-<<<<<<< HEAD
-    label: "Active Workflows",
-=======
     label: "My Active Cases",
->>>>>>> origin/enter-main
     iconClass: "border-success/25 bg-success/10 text-success",
     valueClass: "text-success",
   },
 ];
-<<<<<<< HEAD
-
-export default function Dashboard() {
-  const { data: employees, isLoading, isError } = useEmployees();
-  const total = employees?.length;
-  const critical = employees?.filter((e) => e.risk_score > 70).length;
-  const statValues = [isLoading ? "…" : String(total ?? 0), isLoading ? "…" : String(critical ?? 0), "7"];
-  const topSignals = employees?.slice(0, 4) ?? [];
-
-=======
 export default function Dashboard() {
   const { user } = useAuth();
   const displayName =
@@ -152,8 +97,7 @@ export default function Dashboard() {
     ? "Loading live workforce signals…"
     : isError
       ? "Workforce data is unavailable. Retry below to reconnect."
-      : `${total ?? 0} employee records. ${critical ?? 0} critical signals. Explore the context, find opportunities, and coordinate your next step.`;
->>>>>>> origin/enter-main
+      : `${total ?? 0} employee records. ${critical ?? 0} critical signals. Diagnose flight risk, plan the response, and execute it with owners and due dates.`;
   return (
     <div className="space-y-6">
       {/* ---- 3D Hero ---- */}
@@ -171,49 +115,6 @@ export default function Dashboard() {
         />
 
         <div className="relative z-10 pb-10 pt-14 lg:pt-20">
-<<<<<<< HEAD
-          <motion.div
-            variants={fadeUp}
-            custom={0}
-            initial="hidden"
-            animate="show"
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.22em] text-muted-foreground"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
-            AUTONOMOUS WORKFORCE INTELLIGENCE · LIVE
-          </motion.div>
-
-          <motion.h1
-            variants={fadeUp}
-            custom={1}
-            initial="hidden"
-            animate="show"
-            className="mt-6 max-w-2xl font-display text-3xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl"
-          >
-            Good morning, Raj.
-            <br />
-            <span className="gradient-text">Your workforce is under control.</span>
-          </motion.h1>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            initial="hidden"
-            animate="show"
-            className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground"
-          >
-            247 employees monitored in real time. 18 critical signals need
-            attention. Pick a module below to inspect, diagnose and act.
-          </motion.p>
-
-          {/* Quick stats */}
-          <motion.div
-            variants={fadeUp}
-            custom={3}
-            initial="hidden"
-            animate="show"
-            className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
-=======
           <div
             className="rise inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.22em] text-muted-foreground"
             style={rise(0)}
@@ -245,7 +146,6 @@ export default function Dashboard() {
           <div
             className="rise mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
             style={rise(3)}
->>>>>>> origin/enter-main
           >
             {STAT_CONFIG.map((stat, i) => (
               <div
@@ -255,11 +155,7 @@ export default function Dashboard() {
                 <div
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
-<<<<<<< HEAD
-                    stat.iconClass
-=======
                     stat.iconClass,
->>>>>>> origin/enter-main
                   )}
                 >
                   <stat.icon className="h-4 w-4" />
@@ -271,11 +167,7 @@ export default function Dashboard() {
                   <p
                     className={cn(
                       "font-mono text-lg font-semibold",
-<<<<<<< HEAD
-                      stat.valueClass ?? "text-foreground"
-=======
                       stat.valueClass ?? "text-foreground",
->>>>>>> origin/enter-main
                     )}
                   >
                     {statValues[i]}
@@ -283,11 +175,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-<<<<<<< HEAD
-          </motion.div>
-=======
           </div>
->>>>>>> origin/enter-main
         </div>
       </section>
 
@@ -309,21 +197,9 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {MODULES.map((mod, i) => (
-<<<<<<< HEAD
-            <motion.div
-              key={mod.path}
-              variants={fadeUp}
-              custom={4 + i}
-              initial="hidden"
-              animate="show"
-            >
-              <Link
-                to={mod.path}
-=======
             <div className="rise" key={mod.path} style={rise(4 + i)}>
               <Link
                 to={employeePath(mod.path)}
->>>>>>> origin/enter-main
                 className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-glow-primary"
               >
                 <div className="flex items-center justify-between">
@@ -345,11 +221,7 @@ export default function Dashboard() {
                   <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </span>
               </Link>
-<<<<<<< HEAD
-            </motion.div>
-=======
             </div>
->>>>>>> origin/enter-main
           ))}
         </div>
       </section>
@@ -376,13 +248,9 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {isLoading &&
-<<<<<<< HEAD
-            Array.from({ length: 4 }).map((_, i) => (
-=======
             Array.from({
               length: 4,
             }).map((_, i) => (
->>>>>>> origin/enter-main
               <div
                 key={i}
                 className="rounded-xl border border-border bg-card p-5"
@@ -404,41 +272,18 @@ export default function Dashboard() {
               <p className="font-mono text-xs tracking-widest text-destructive">
                 FAILED TO LOAD SIGNALS
               </p>
-<<<<<<< HEAD
-=======
               <button
                 className="mt-3 text-xs text-primary underline"
                 onClick={() => void refetch()}
               >
                 Retry loading signals
               </button>
->>>>>>> origin/enter-main
             </div>
           )}
 
           {!isLoading &&
             !isError &&
             topSignals.map((emp, i) => (
-<<<<<<< HEAD
-              <motion.div
-                key={emp.id}
-                variants={fadeUp}
-                custom={8 + i}
-                initial="hidden"
-                animate="show"
-              >
-                <Link
-                  to="/deep-dive"
-                  className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-destructive/40 hover:shadow-soft"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
-                        emp.gradient
-                      )}
-                    >
-=======
               <div className="rise" key={emp.id} style={rise(8 + i)}>
                 <Link
                   to={`/deep-dive?employee=${emp.employee_code}`}
@@ -446,7 +291,6 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-xs font-semibold text-primary">
->>>>>>> origin/enter-main
                       {emp.initials}
                     </div>
                     <div className="min-w-0">
@@ -467,30 +311,18 @@ export default function Dashboard() {
                           ? "text-destructive"
                           : emp.status === "Intervene"
                             ? "text-warning"
-<<<<<<< HEAD
-                            : "text-muted-foreground"
-=======
                             : "text-muted-foreground",
->>>>>>> origin/enter-main
                       )}
                     >
                       {emp.status}
                     </span>
                   </div>
                   <p className="mt-3 border-t border-border pt-3 font-mono text-[10px] text-muted-foreground">
-<<<<<<< HEAD
-                    OVERTIME +{Number(emp.overtime_spike).toFixed(1)}H · SENTIMENT −
-                    {emp.sentiment_drop}
-                  </p>
-                </Link>
-              </motion.div>
-=======
                     OVERTIME +{Number(emp.overtime_spike).toFixed(1)}H ·
                     SENTIMENT −{emp.sentiment_drop}
                   </p>
                 </Link>
               </div>
->>>>>>> origin/enter-main
             ))}
         </div>
       </section>

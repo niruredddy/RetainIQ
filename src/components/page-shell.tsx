@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-import { motion } from "framer-motion";
-=======
->>>>>>> origin/enter-main
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -13,17 +9,6 @@ export function PageShell({
   className?: string;
 }) {
   return (
-<<<<<<< HEAD
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className={cn("mx-auto w-full max-w-[1440px] px-5 py-6 lg:px-8", className)}
-    >
-      {children}
-    </motion.div>
-=======
     <div
       className={cn(
         "page-enter mx-auto w-full max-w-[1440px] px-5 py-6 lg:px-8",
@@ -32,7 +17,6 @@ export function PageShell({
     >
       {children}
     </div>
->>>>>>> origin/enter-main
   );
 }
 

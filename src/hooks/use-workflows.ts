@@ -13,6 +13,7 @@ export interface WorkflowRow {
   updated_at: string;
   employee_id: string;
   tracking_mode: string;
+  plan_summary: string | null;
   employees: { employee_code: string; name: string } | null;
 }
 export interface RetentionTask {
@@ -25,6 +26,7 @@ export interface RetentionTask {
   evidence: string | null;
   recorded_by: string | null;
   recorded_at: string | null;
+  due_at: string | null;
 }
 export function useWorkflowNodes() {
   return useQuery({
@@ -47,7 +49,7 @@ export function useWorkflows(employeeId?: string, page = 0) {
       let query = supabase
         .from("workflows")
         .select(
-          "id,status,created_at,updated_at,employee_id,tracking_mode,employees(employee_code,name)",
+          "id,status,created_at,updated_at,employee_id,tracking_mode,plan_summary,employees(employee_code,name)",
         )
         .order("updated_at", { ascending: false });
       if (employeeId) query = query.eq("employee_id", employeeId);
@@ -102,9 +104,16 @@ export function useTaskEvents(taskId: string) {
     },
   });
 }
-export async function startWorkflow(employeeId: string) {
+export type RecommendedAction = { action: string; owner: string };
+export async function startWorkflow(
+  employeeId: string,
+  actions: RecommendedAction[] = [],
+  summary?: string | null,
+) {
   const { data, error } = await supabase.rpc("start_retention_case", {
     p_employee_id: employeeId,
+    p_actions: actions,
+    p_summary: summary ?? null,
   });
   if (error) throw error;
   return data as string;

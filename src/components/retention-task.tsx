@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, History, Loader2 } from "lucide-react";
+import { CalendarDays, Check, History, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
@@ -44,6 +44,8 @@ export function RetentionTaskCard({ task }: { task: RetentionTask }) {
   const [error, setError] = useState<string | null>(null);
   const invalidate = useInvalidateWorkflows();
   const done = task.status === "completed";
+  const due = task.due_at ? new Date(task.due_at) : null;
+  const overdue = Boolean(due && !done && due.getTime() < Date.now());
   const save = async () => {
     if (busy) return;
     setBusy(true);
@@ -84,6 +86,15 @@ export function RetentionTaskCard({ task }: { task: RetentionTask }) {
             {done ? "Human-recorded completion" : "Awaiting human action"}
           </span>
         </div>
+        {due && (
+          <p
+            className={`mt-2 flex items-center gap-1.5 font-mono text-[10px] ${overdue ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            <CalendarDays size={11} />
+            {overdue ? "Overdue since " : "Scheduled for "}
+            {due.toLocaleDateString()} · {due.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
         {task.evidence && (
           <p className="mt-3 rounded-lg bg-muted/50 p-3 text-xs leading-relaxed">
             {task.evidence}

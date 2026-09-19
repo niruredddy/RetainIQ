@@ -1,0 +1,43 @@
+-- RetainIQ auto-orchestration: agent-recommended actions become a tracked case.
+-- Tasks may originate from the agent's recommended_actions (no workflow node) with
+-- staggered due dates; the case records the plan summary that produced them.
+ALTER TABLE public.retention_tasks ALTER COLUMN node_id DROP NOT NULL;
+ALTER TABLE public.retention_tasks ADD COLUMN IF NOT EXISTS due_at timestamptz;
+ALTER TABLE public.workflows ADD COLUMN IF NOT EXISTS plan_summary text;
+
+DROP FUNCTION IF EXISTS public.start_retention_case(uuid);
+
+CREATE OR REPLACE FUNCTION public.start_retention_case(p_employee_id uuid, p_actions jsonb DEFAULT '[]'::jsonb, p_summary text DEFAULT NULL)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE case_id uuid;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Sign in required'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.employees WHERE id=p_employee_id) THEN RAISE EXCEPTION 'Employee not found'; END IF;
+ INSERT INTO public.workflows(employee_id,created_by,status,tracking_mode,plan_summary)
+   VALUES(p_employee_id,auth.uid(),'in_progress','manual',NULLIF(trim(coalesce(p_summary,'')),''))
+   ON CONFLICT (employee_id,created_by) WHERE tracking_mode='manual' DO NOTHING
+   RETURNING id INTO case_id;
+ IF case_id IS NULL THEN
+   SELECT id INTO case_id FROM public.workflows WHERE employee_id=p_employee_id AND created_by=auth.uid() AND tracking_mode='manual';
+   RETURN case_id;
+ END IF;
+ IF jsonb_typeof(p_actions)='array' AND jsonb_array_length(p_actions)>0 THEN
+   INSERT INTO public.retention_tasks(workflow_id,node_id,position,title,owner_label,due_at)
+   SELECT case_id, NULL, src.ord-1, a.action, COALESCE(a.owner,'Human partner'), now() + ((2 + 3*(src.ord-1)) || ' days')::interval
+   FROM (SELECT item, ord FROM jsonb_array_elements(p_actions) WITH ORDINALITY AS x(item,ord) WHERE jsonb_typeof(x.item)='object') AS src,
+        jsonb_to_record(src.item) AS a(action text, owner text)
+   WHERE a.action IS NOT NULL AND length(trim(a.action))>0;
+ ELSE
+   IF NOT EXISTS(SELECT 1 FROM public.workflow_nodes) THEN RAISE EXCEPTION 'No workflow tasks configured'; END IF;
+   INSERT INTO public.retention_tasks(workflow_id,node_id,position,title,owner_label)
+     SELECT case_id,id,position,title,owner FROM public.workflow_nodes;
+ END IF;
+ RETURN case_id;
+END; $function$;
+
+REVOKE ALL ON FUNCTION public.start_retention_case(uuid,jsonb,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.start_retention_case(uuid,jsonb,text) TO authenticated;

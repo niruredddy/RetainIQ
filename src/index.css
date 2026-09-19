@@ -1,138 +1,107 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/enter-main
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 240 6% 10%;
+    --background: 60 20% 97%;
+    --foreground: 230 18% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 6% 10%;
+    --card-foreground: 230 18% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
+    --popover-foreground: 230 18% 9%;
 
-<<<<<<< HEAD
-    --primary: 217 91% 60%;
-=======
-    --primary: 217 85% 43%;
->>>>>>> origin/enter-main
+    --primary: 92 55% 30%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
+    --secondary: 70 20% 95%;
+    --secondary-foreground: 230 18% 9%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 34%;
+    --muted: 70 20% 95%;
+    --muted-foreground: 230 10% 34%;
 
-    --accent: 240 5% 95%;
-    --accent-foreground: 240 6% 10%;
+    --accent: 170 25% 94%;
+    --accent-foreground: 230 18% 9%;
 
-<<<<<<< HEAD
-    --destructive: 350 89% 60%;
+    --destructive: 8 82% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 40 95% 42%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 160 84% 39%;
-=======
-    --destructive: 350 75% 43%;
-    --destructive-foreground: 0 0% 100%;
-
-    --warning: 32 85% 33%;
-    --warning-foreground: 0 0% 100%;
-
-    --success: 160 80% 27%;
->>>>>>> origin/enter-main
+    --success: 165 75% 28%;
     --success-foreground: 0 0% 100%;
 
     --border: 0 0% 0% / 0.08;
     --input: 0 0% 0% / 0.08;
-    --ring: 217 91% 60%;
+    --ring: 92 55% 34%;
 
-    --primary-glow: 217 91% 68%;
-    --indigo: 243 75% 59%;
+    --primary-glow: 92 100% 38%;
+    --indigo: 178 80% 32%;
 
-<<<<<<< HEAD
-    --radius: 0.5rem;
-=======
     --radius: 0.75rem;
     --surface-raised: 0 0% 100%;
-    --scene-base: 222 48% 8%;
-    --scene-foreground: 215 40% 96%;
-    --scene-muted: 216 22% 72%;
-    --scene-blue: 215 92% 65%;
-    --scene-mint: 164 70% 62%;
-    --scene-line: 214 45% 24%;
-    --overlay: 222 40% 5%;
+    --scene-base: 228 30% 6%;
+    --scene-foreground: 60 30% 96%;
+    --scene-muted: 225 12% 70%;
+    --scene-blue: 82 100% 56%;
+    --scene-mint: 170 70% 56%;
+    --scene-line: 228 25% 20%;
+    --overlay: 228 35% 4%;
     --shadow-surface:
-      0 2px 3px hsl(222 35% 10% / 0.02),
-      0 16px 40px -24px hsl(222 35% 10% / 0.18);
+      0 2px 3px hsl(230 35% 10% / 0.02),
+      0 16px 40px -24px hsl(230 35% 10% / 0.18);
     --shadow-raised:
       0 1px 0 hsl(0 0% 100% / 0.7) inset,
-      0 20px 55px -24px hsl(217 70% 35% / 0.25);
->>>>>>> origin/enter-main
+      0 20px 55px -24px hsl(92 50% 25% / 0.25);
   }
 
   .dark {
-    --background: 240 10% 4%;
+    --background: 240 12% 5%;
     --foreground: 0 0% 98%;
 
-    --card: 240 5% 7%;
+    --card: 240 10% 8%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 5% 7%;
+    --popover: 240 10% 8%;
     --popover-foreground: 0 0% 98%;
 
-<<<<<<< HEAD
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-=======
-    --primary: 217 90% 68%;
-    --primary-foreground: 222 48% 8%;
->>>>>>> origin/enter-main
+    --primary: 82 100% 52%;
+    --primary-foreground: 90 40% 8%;
 
-    --secondary: 240 4% 10%;
+    --secondary: 240 8% 10%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 5% 9%;
+    --muted: 240 8% 10%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 240 4% 10%;
+    --accent: 178 25% 12%;
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 350 89% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 8 90% 65%;
+    --destructive-foreground: 240 12% 5%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 45 100% 58%;
+    --warning-foreground: 240 12% 5%;
 
-    --success: 160 84% 39%;
-    --success-foreground: 0 0% 100%;
+    --success: 162 85% 52%;
+    --success-foreground: 240 12% 5%;
 
     --border: 0 0% 100% / 0.08;
     --input: 0 0% 100% / 0.08;
-    --ring: 217 91% 60%;
+    --ring: 82 100% 58%;
 
-    --primary-glow: 217 91% 70%;
-<<<<<<< HEAD
-    --indigo: 243 75% 59%;
-=======
-    --indigo: 225 85% 66%;
-    --surface-raised: 222 20% 11%;
+    --primary-glow: 82 95% 70%;
+    --indigo: 176 85% 55%;
+    --surface-raised: 240 12% 13%;
     --shadow-surface:
-      0 1px 0 hsl(215 50% 80% / 0.035) inset,
-      0 12px 32px -18px hsl(222 60% 1% / 0.7);
+      0 1px 0 hsl(170 50% 80% / 0.035) inset,
+      0 12px 32px -18px hsl(240 60% 1% / 0.7);
     --shadow-raised:
-      0 1px 0 hsl(215 50% 80% / 0.08) inset,
-      0 22px 60px -24px hsl(222 60% 1% / 0.8);
->>>>>>> origin/enter-main
+      0 1px 0 hsl(170 50% 80% / 0.08) inset,
+      0 22px 60px -24px hsl(240 60% 1% / 0.8);
   }
 }
 
@@ -226,8 +195,6 @@
   }
 }
 
-<<<<<<< HEAD
-=======
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -250,7 +217,6 @@
   }
 }
 
->>>>>>> origin/enter-main
 html,
 body,
 #root {
@@ -274,8 +240,6 @@ body,
 *::-webkit-scrollbar-track {
   background: transparent;
 }
-<<<<<<< HEAD
-=======
 
 @layer components {
   .surface-card {
@@ -636,4 +600,3 @@ body,
     transition-duration: 0.01ms !important;
   }
 }
->>>>>>> origin/enter-main

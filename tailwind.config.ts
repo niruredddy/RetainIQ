@@ -20,10 +20,7 @@ export default {
 		},
 		extend: {
 			colors: {
-<<<<<<< HEAD
-=======
 				overlay: "hsl(var(--overlay))",
->>>>>>> origin/enter-main
 				border: "hsl(var(--border))",
 				input: "hsl(var(--input))",
 				ring: "hsl(var(--ring))",
