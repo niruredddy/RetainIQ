@@ -9,7 +9,7 @@ const PALETTES = {
   dark: {
     point: new THREE.Color(0x3b82f6),
     link: new THREE.Color(0x3b82f6),
-    globe: new THREE.Color(0x10b981),
+    globe: new THREE.Color(0x3b82f6),
     ring: new THREE.Color(0x38bdf8),
     pointOpacity: 0.85,
     linkOpacity: 0.14,
@@ -19,7 +19,7 @@ const PALETTES = {
   light: {
     point: new THREE.Color(0x2563eb),
     link: new THREE.Color(0x3b82f6),
-    globe: new THREE.Color(0x059669),
+    globe: new THREE.Color(0x2563eb),
     ring: new THREE.Color(0x0284c7),
     pointOpacity: 0.55,
     linkOpacity: 0.22,

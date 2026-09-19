@@ -55,7 +55,7 @@ export const employees: Employee[] = [
     name: "Priya Raghavan",
     role: "Backend Engineer, Payments",
     initials: "PR",
-    gradient: "from-emerald-500 to-teal-600",
+    gradient: "from-blue-500 to-indigo-600",
     tenure: "5.4 yrs",
     overtimeSpike: 9.8,
     sentimentDrop: 21,
