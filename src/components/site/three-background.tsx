@@ -7,20 +7,20 @@ type Variant = "hero" | "cta" | "app";
 
 const PALETTES = {
   dark: {
-    point: new THREE.Color(0xccff00),
-    link: new THREE.Color(0xccff00),
-    globe: new THREE.Color(0x2dd4bf),
-    ring: new THREE.Color(0xd9ff33),
+    point: new THREE.Color(0x3b82f6),
+    link: new THREE.Color(0x3b82f6),
+    globe: new THREE.Color(0x10b981),
+    ring: new THREE.Color(0x38bdf8),
     pointOpacity: 0.85,
     linkOpacity: 0.14,
     globeOpacity: 0.32,
     ringOpacity: 0.28,
   },
   light: {
-    point: new THREE.Color(0x557d08),
-    link: new THREE.Color(0x6b9a0e),
-    globe: new THREE.Color(0x0f766e),
-    ring: new THREE.Color(0x3f6212),
+    point: new THREE.Color(0x2563eb),
+    link: new THREE.Color(0x3b82f6),
+    globe: new THREE.Color(0x059669),
+    ring: new THREE.Color(0x0284c7),
     pointOpacity: 0.55,
     linkOpacity: 0.22,
     globeOpacity: 0.5,

@@ -33,7 +33,7 @@ const MODULES = [
     icon: ScanSearch,
     index: "02",
     title: "Deep-Dive",
-    body: "Diagnose flight risk from recorded signals, with the agent's structured review.",
+    body: "Agent-assisted review of recorded signals, with human judgment at the center.",
   },
   {
     path: "/mobility-matcher",
@@ -47,7 +47,7 @@ const MODULES = [
     icon: Zap,
     index: "04",
     title: "Action Center",
-    body: "Execute the retention plan — auto-orchestrated cases with owners, due dates and evidence.",
+    body: "Human-led retention cases with recorded actions and supporting evidence.",
   },
 ];
 const STAT_CONFIG = [
@@ -97,7 +97,7 @@ export default function Dashboard() {
     ? "Loading live workforce signals…"
     : isError
       ? "Workforce data is unavailable. Retry below to reconnect."
-      : `${total ?? 0} employee records. ${critical ?? 0} critical signals. Diagnose flight risk, plan the response, and execute it with owners and due dates.`;
+      : `${total ?? 0} employee records. ${critical ?? 0} critical signals. Explore the context, find opportunities, and coordinate your next step.`;
   return (
     <div className="space-y-6">
       {/* ---- 3D Hero ---- */}
